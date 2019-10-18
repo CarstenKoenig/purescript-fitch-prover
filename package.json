@@ -1,0 +1,19 @@
+{
+  "name": "purescript-fitch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./static/index.js",
+  "scripts": {
+    "clean": "rimraf output",
+    "build": "spago build",
+    "dev": "npm run build && parcel build ./static/index.html",
+    "start": "npm run build && parcel ./static/index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "parcel-bundler": "^1.12.3",
+    "rimraf": "^2.6.3"
+  }
+}
