@@ -3,7 +3,7 @@ module Expressions
   , tryParse
   ) where
 
-import Prelude
+import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
