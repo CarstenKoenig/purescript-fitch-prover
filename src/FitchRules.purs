@@ -1,5 +1,6 @@
 module FitchRules
-  ( notIntroduction, notElimination
+  ( RuleInstance (..)
+  , notIntroduction, notElimination
   , implicationElimination
   , andIntroduction, andElimination
   , orIntroduction, orElimination
@@ -7,33 +8,63 @@ module FitchRules
 
 import Prelude
 
+import Data.Maybe (Maybe(..))
 import Expressions (Expr(..))
 
-notIntroduction :: Expr -> Expr -> Array Expr
-notIntroduction (ImplExpr a b) (ImplExpr a' b')
-  | a == a' && (b == NegExpr b' || b' == NegExpr b) = [NegExpr a]
-notIntroduction _ _ = []
+type RuleInstance =
+  { premisses :: Array Expr
+  , conclusions :: Array Expr
+  }
 
-notElimination :: Expr -> Array Expr
-notElimination (NegExpr (NegExpr a)) = [a]
-notElimination _ = []
+notIntroduction :: Expr -> Expr -> Maybe RuleInstance
+notIntroduction p1@(ImplExpr a b) p2@(ImplExpr a' b')
+  | a == a' && (b == NegExpr b' || b' == NegExpr b) = Just
+    { premisses: [p1, p2]
+    , conclusions: [NegExpr a]
+    }
+notIntroduction _ _ = Nothing
 
-implicationElimination :: Expr -> Expr -> Array Expr
-implicationElimination (ImplExpr a b) a' | a == a' = [b]
-implicationElimination a' (ImplExpr a b) | a == a' = [b]
-implicationElimination _ _ = []
+notElimination :: Expr -> Maybe RuleInstance
+notElimination p@(NegExpr (NegExpr a)) = Just
+  { premisses: [p]
+  , conclusions: [a]
+  }
+notElimination _ = Nothing
 
-andIntroduction :: Expr -> Expr -> Array Expr
-andIntroduction a b = [ AndExpr a b, AndExpr b a ]
+implicationElimination :: Expr -> Expr -> Maybe RuleInstance
+implicationElimination p@(ImplExpr a b) a' | a == a' = Just
+  { premisses: [p, a]
+  , conclusions: [b]
+  }
+implicationElimination a' p@(ImplExpr a b) | a == a' = Just
+  { premisses: [p, a]
+  , conclusions: [b]
+  }
+implicationElimination _ _ = Nothing
 
-andElimination :: Expr -> Array Expr
-andElimination (AndExpr a b) = [a,b]
-andElimination _ = []
+andIntroduction :: Expr -> Expr -> RuleInstance
+andIntroduction a b =
+  { premisses: [a,b]
+  , conclusions: [ AndExpr a b, AndExpr b a ]
+  }
 
-orIntroduction :: Expr -> Expr -> Array Expr
-orIntroduction a b = [ OrExpr a b, OrExpr b a ]
+andElimination :: Expr -> Maybe RuleInstance
+andElimination p@(AndExpr a b) = Just
+  { premisses: [p]
+  , conclusions: [a,b]
+  }
+andElimination _ = Nothing
 
-orElimination :: Expr -> Expr -> Expr -> Array Expr
-orElimination (OrExpr a b) (ImplExpr a' c) (ImplExpr b' c')
-  | a == a' && b == b' && c == c' = [c]
-orElimination _ _ _ = []
+orIntroduction :: Expr -> Expr -> RuleInstance
+orIntroduction a b =
+  { premisses: [a]
+  , conclusions: [ OrExpr a b, OrExpr b a ]
+  }
+
+orElimination :: Expr -> Expr -> Expr -> Maybe RuleInstance
+orElimination p1@(OrExpr a b) p2@(ImplExpr a' c) p3@(ImplExpr b' c')
+  | a == a' && b == b' && c == c' = Just
+    { premisses: [p1,p2,p3]
+    , conclusions: [c]
+    }
+orElimination _ _ _ = Nothing

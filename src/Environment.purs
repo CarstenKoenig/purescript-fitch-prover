@@ -4,14 +4,16 @@ module Environment
   , runWith
   , currentScope, scopeLevel, inScope
   , assume, introduceImplication
-  , tryApply1, tryApply2, tryApply3
+  , tryApply
   ) where
 
 import Prelude
 
-import Control.Monad.State (State, evalState, get, gets, modify, put)
-import Data.Foldable (for_)
+import Control.Monad.State (State, evalState, get, gets, modify, put, runState)
+import Data.Foldable (foldM, for_)
+import Data.Tuple (Tuple)
 import Expressions (Expr(..))
+import FitchRules (RuleInstance)
 import Scope (Scope)
 import Scope as Scope
 
@@ -20,9 +22,13 @@ type Environment a = State AssumptionStack a
 ----------------------------------------------------------------------
 -- run Environment Computation
 
-runWith :: forall a. Scope -> Environment a -> a
-runWith initialScope computation = 
+evalWith :: forall a. Scope -> Environment a -> a
+evalWith initialScope computation = 
   evalState computation (NoAssumptions initialScope)
+
+runWith :: forall a. AssumptionStack -> Environment a -> Tuple a AssumptionStack
+runWith stack computation = 
+  runState computation stack
 
 ----------------------------------------------------------------------
 -- introduce implications
@@ -42,36 +48,15 @@ introduceImplication conclusion = do
     _ -> pure false
 
 ----------------------------------------------------------------------
--- apply rules
+-- tries to apply rule-results
 
-tryApply1 :: (Expr -> Array Expr) -> Expr -> Environment Boolean
-tryApply1  rule expr = do
-  applicable <- inScope expr
+tryApply :: RuleInstance -> Environment Boolean
+tryApply ruleInst = do
+  applicable <- foldM (\ok p -> (ok && _) <$> inScope p) true ruleInst.premisses
   if not applicable
   then pure false
   else do
-    let results = rule expr
-    for_ results addExpr
-    pure true
-
-tryApply2 :: (Expr -> Expr -> Array Expr) -> Expr -> Expr -> Environment Boolean
-tryApply2  rule exprA exprB = do
-  applicable <- (&&) <$> inScope exprA <*> inScope exprB
-  if not applicable
-  then pure false
-  else do
-    let results = rule exprA exprB
-    for_ results addExpr
-    pure true
-
-tryApply3 :: (Expr -> Expr -> Expr -> Array Expr) -> Expr -> Expr -> Expr -> Environment Boolean
-tryApply3  rule exprA exprB exprC = do
-  applicable <- (\a b c -> a && b && c) <$> inScope exprA <*> inScope exprB <*> inScope exprC
-  if not applicable
-  then pure false
-  else do
-    let results = rule exprA exprB exprC
-    for_ results addExpr
+    for_ ruleInst.conclusions addExpr
     pure true
 
 ----------------------------------------------------------------------
