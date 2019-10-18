@@ -1,6 +1,6 @@
 module FitchRules
   ( notIntroduction, notElimination
-  , implicationIntroduction, implicationElimination
+  , implicationElimination
   , andIntroduction, andElimination
   , orIntroduction, orElimination
   ) where
@@ -17,9 +17,6 @@ notIntroduction _ _ = []
 notElimination :: Expr -> Array Expr
 notElimination (NegExpr (NegExpr a)) = [a]
 notElimination _ = []
-
-implicationIntroduction :: Expr -> Expr -> Array Expr
-implicationIntroduction pred conc = [ ImplExpr pred conc ]
 
 implicationElimination :: Expr -> Expr -> Array Expr
 implicationElimination (ImplExpr a b) a' | a == a' = [b]

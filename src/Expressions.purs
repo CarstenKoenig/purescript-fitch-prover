@@ -26,6 +26,7 @@ data Expr
   | OrExpr Expr Expr
 
 derive instance eqExpr :: Eq Expr
+derive instance ordExpr :: Ord Expr
 derive instance genExpr :: Generic Expr _
 
 instance showExpr :: Show Expr where
