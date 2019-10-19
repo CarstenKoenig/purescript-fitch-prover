@@ -2,6 +2,7 @@ module Components.ApplyRuleModal
   ( Message (..)
   , Slot
   , Input
+  , RuleRecipe (..)
   , component
   ) where
 
@@ -9,9 +10,10 @@ import Prelude
 
 import Components.NewExprButton as NewBtn
 import Data.Const (Const)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
+import Expressions (Expr)
 import FitchRules (RuleInstance)
 import Halogen (AttrName(..), ClassName(..))
 import Halogen as H
@@ -21,26 +23,50 @@ import Halogen.HTML.Properties as HP
 import Scope (Scope)
 import Scope as Scope
 
+data RuleRecipe
+  = Step { stepLabel :: String
+         , step :: Expr -> RuleRecipe
+         }
+  | Failed
+  | Completed RuleInstance
+
+getLabelText :: RuleRecipe -> String
+getLabelText Failed = "sorry that did not work out"
+getLabelText (Completed ruleInst) = ruleInst.description
+getLabelText (Step s) = s.stepLabel
+
+getRuleInstance :: RuleRecipe -> Maybe RuleInstance
+getRuleInstance Failed = Nothing
+getRuleInstance (Step _) = Nothing
+getRuleInstance (Completed ruleInst) = Just ruleInst
+
 type Slot = H.Slot (Const Unit) Message
 
 data Message 
-  = NewRule RuleInstance
+  = NewRule { ruleInstance :: RuleInstance
+            , newFact :: Expr
+            }
   | Canceled
 
 type Input =
   { scope :: Scope 
   , mayIntroduceAdditionalFacts :: Boolean
+  , recipe :: RuleRecipe
   }
 
 data Action 
   = Close
   | UpdateInput Input
+  | ApplyExprToCurrentStep Expr
+  | SelectResult { ruleInstance :: RuleInstance, newFact :: Expr }
   | HandleNewExprButton NewBtn.Message
 
 type State =
   { isActive :: Boolean 
+  , recipe :: RuleRecipe
   , scope :: Scope
   , mayIntroduceAdditionalFacts :: Boolean
+  , currentStep :: RuleRecipe
   }
 
 type ChildSlots =
@@ -65,8 +91,10 @@ component =
   initialState :: Input -> State
   initialState input =
     { isActive: true 
+    , recipe: input.recipe
     , scope: input.scope
     , mayIntroduceAdditionalFacts: input.mayIntroduceAdditionalFacts
+    , currentStep: input.recipe
     }
 
   render :: State -> H.ComponentHTML Action ChildSlots m
@@ -81,6 +109,8 @@ component =
             [ HH.div
               [ HP.class_ (ClassName "box") ] 
               [ HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text "use rule" ]
+              , HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text $ getLabelText state.currentStep ]
+              , maybe (HH.text "") showConclusions $ getRuleInstance state.currentStep
               ]
             , HH.div
               [ HP.class_ (ClassName "box") ] 
@@ -89,7 +119,7 @@ component =
               ]
             , HH.div
               [ HP.class_ (ClassName "box") ] 
-              [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "you might add additional facts" ]
+              [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "you might add additional facts" ]
               , HH.slot _newExpr unit NewBtn.component unit (Just <<< HandleNewExprButton)
               ]
             ]
@@ -109,6 +139,14 @@ component =
       H.raise Canceled
     UpdateInput input -> do
       H.modify_ (_ { scope = input.scope })
+    ApplyExprToCurrentStep expr -> do
+      step <- H.gets _.currentStep
+      case step of
+        Step s -> H.modify_ (_ { currentStep = s.step expr })
+        _ -> pure unit
+    SelectResult result -> do
+      H.modify_ (_ { isActive = false })
+      H.raise (NewRule result)
     HandleNewExprButton (NewBtn.NewExpr expr) ->
       H.modify_ (\st -> st { scope = Scope.include st.scope expr })
 
@@ -116,5 +154,16 @@ component =
     [ HP.class_ (ClassName "buttons is-marginless") ]
     (map showFact $ Scope.toArray scope)
   showFact expr = HH.button 
-    [ HP.class_ (ClassName "button") ] 
+    [ HP.class_ (ClassName "button") 
+    , HE.onClick (\_ -> Just (ApplyExprToCurrentStep expr))
+    ] 
+    [ HH.text $ show expr ]
+
+  showConclusions ruleInst = HH.div
+    [ HP.class_ (ClassName "buttons is-marginless") ]
+    (map (showConclusion ruleInst) ruleInst.conclusions)
+  showConclusion ruleInst expr = HH.button 
+    [ HP.class_ (ClassName "button") 
+    , HE.onClick (\_ -> Just $ SelectResult { ruleInstance: ruleInst, newFact: expr })
+    ] 
     [ HH.text $ show expr ]

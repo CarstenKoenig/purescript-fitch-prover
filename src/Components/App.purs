@@ -18,6 +18,7 @@ import Environment (AssumptionStack)
 import Environment as Env
 import Expressions (Expr, tryParse)
 import FitchRules (RuleInstance)
+import FitchRules as Fitch
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
@@ -105,7 +106,8 @@ render state = HH.div_
     then HH.slot _newRuleModal unit 
       RuleDlg.component 
         { scope: Env.scopeOf state.currentStack 
-        , mayIntroduceNewFacts: true
+        , mayIntroduceAdditionalFacts: true
+        , recipe: exampleRecipe
         } 
       (Just <<< HandleRuleModal)
     else HH.text "" 
@@ -142,3 +144,13 @@ handleAction = case _ of
   CheckButtonState -> do
     buttonState <- H.query _button unit $ H.request Button.IsOn
     H.modify_ (_ { buttonState = buttonState })
+
+exampleRecipe :: RuleDlg.RuleRecipe
+exampleRecipe =
+  RuleDlg.Step
+    { stepLabel: "OR-introduction know fact?"
+    , step: \fact -> RuleDlg.Step
+      { stepLabel: "Or-introduction additional expr"
+      , step: \expr -> RuleDlg.Completed (Fitch.orIntroduction fact expr)
+      }
+    }
