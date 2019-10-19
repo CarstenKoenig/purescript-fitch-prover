@@ -7,8 +7,10 @@ module Components.ApplyRuleModal
 
 import Prelude
 
+import Components.NewExprButton as NewBtn
 import Data.Const (Const)
 import Data.Maybe (Maybe(..))
+import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
 import FitchRules (RuleInstance)
 import Halogen (AttrName(..), ClassName(..))
@@ -27,17 +29,26 @@ data Message
 
 type Input =
   { scope :: Scope 
+  , mayIntroduceAdditionalFacts :: Boolean
   }
 
 data Action 
   = Close
   | UpdateInput Input
+  | HandleNewExprButton NewBtn.Message
 
 type State =
   { isActive :: Boolean 
   , scope :: Scope
+  , mayIntroduceAdditionalFacts :: Boolean
   }
 
+type ChildSlots =
+  ( newExprButton :: NewBtn.Slot Unit
+  )
+
+_newExpr :: SProxy "newExprButton"
+_newExpr = SProxy
 
 component :: forall q m. MonadEffect m => H.Component HH.HTML q Input Message m
 component =
@@ -55,9 +66,10 @@ component =
   initialState input =
     { isActive: true 
     , scope: input.scope
+    , mayIntroduceAdditionalFacts: input.mayIntroduceAdditionalFacts
     }
 
-  render :: State -> H.ComponentHTML Action () m
+  render :: State -> H.ComponentHTML Action ChildSlots m
   render state =
       HH.div
         [ HP.class_ $ ClassName $ if state.isActive then "modal is-active is-clipped" else "modal" ] 
@@ -75,6 +87,11 @@ component =
               [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "facts in scope" ]
               , showFacts state.scope 
               ]
+            , HH.div
+              [ HP.class_ (ClassName "box") ] 
+              [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "you might add additional facts" ]
+              , HH.slot _newExpr unit NewBtn.component unit (Just <<< HandleNewExprButton)
+              ]
             ]
           ]
         , HH.button
@@ -85,13 +102,15 @@ component =
           []
         ]
 
-  handleAction :: Action -> H.HalogenM State Action () Message m Unit
+  handleAction :: Action -> H.HalogenM State Action ChildSlots Message m Unit
   handleAction = case _ of
     Close -> do
       H.modify_ (_ { isActive = false })
       H.raise Canceled
     UpdateInput input -> do
       H.modify_ (_ { scope = input.scope })
+    HandleNewExprButton (NewBtn.NewExpr expr) ->
+      H.modify_ (\st -> st { scope = Scope.include st.scope expr })
 
   showFacts scope = HH.div
     [ HP.class_ (ClassName "buttons is-marginless") ]

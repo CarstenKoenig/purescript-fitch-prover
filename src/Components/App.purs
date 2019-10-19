@@ -103,7 +103,10 @@ render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots 
 render state = HH.div_
   [ if state.showRuleModal
     then HH.slot _newRuleModal unit 
-      RuleDlg.component { scope: Env.scopeOf state.currentStack } 
+      RuleDlg.component 
+        { scope: Env.scopeOf state.currentStack 
+        , mayIntroduceNewFacts: true
+        } 
       (Just <<< HandleRuleModal)
     else HH.text "" 
   , HH.div_
