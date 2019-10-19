@@ -5,6 +5,7 @@ module Environment
   , currentScope, scopeLevel, inScope
   , assume, introduceImplication
   , tryApply
+  , scopeOf
   ) where
 
 import Prelude
@@ -71,11 +72,7 @@ inScope expr = do
   pure $ Scope.inScope cur expr
 
 currentScope :: Environment Scope
-currentScope = do
-  scopeStack <- get
-  case scopeStack of
-    NoAssumptions scope -> pure scope
-    Assumed _ scope _ -> pure scope
+currentScope = gets scopeOf
 
 modifyScope :: (Scope -> Scope) -> Environment Unit
 modifyScope mod = do
@@ -100,3 +97,9 @@ data AssumptionStack
 stackDepth :: AssumptionStack -> Int
 stackDepth (NoAssumptions _) = 0
 stackDepth (Assumed _ _ stack) = 1 + stackDepth stack
+
+scopeOf :: AssumptionStack -> Scope
+scopeOf stack =
+  case stack of
+    NoAssumptions scope -> scope
+    Assumed _ scope _ -> scope

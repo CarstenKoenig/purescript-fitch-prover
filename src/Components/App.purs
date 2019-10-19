@@ -6,7 +6,7 @@ import Components.ApplyRuleModal as RuleDlg
 import Components.Button as Button
 import Components.NewExprButton as NewBtn
 import Components.Workspace as Ws
-import Data.List (List, fold, (:))
+import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..), maybe)
 import Data.Set (Set)
@@ -91,8 +91,10 @@ initialState _ =
 render :: forall m. MonadEffect m => State -> H.ComponentHTML Action ChildSlots m
 render state = HH.div_
   [ if state.showRuleModal
-    then HH.slot _newRuleModal unit RuleDlg.component unit (Just <<< HandleRuleModal)
-    else HH.text ""
+    then HH.slot _newRuleModal unit 
+      RuleDlg.component { scope: Env.scopeOf state.currentStack } 
+      (Just <<< HandleRuleModal)
+    else HH.text "" 
   , HH.div_
     [ HH.slot _button unit Button.component unit (Just <<< HandleButton)
     , HH.slot _newExpr unit NewBtn.component unit (Just <<< HandleNewExprButton)

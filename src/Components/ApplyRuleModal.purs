@@ -1,4 +1,9 @@
-module Components.ApplyRuleModal where
+module Components.ApplyRuleModal
+  ( Message (..)
+  , Slot
+  , Input
+  , component
+  ) where
 
 import Prelude
 
@@ -19,29 +24,36 @@ data Message
   = NewRule RuleInstance
   | Canceled
 
-type Input = { scope :: Scope }
+type Input =
+  { scope :: Scope 
+  }
 
 data Action 
   = Close
+  | UpdateInput Input
 
-type State 
-  = { isActive :: Boolean }
+type State =
+  { isActive :: Boolean 
+  , scope :: Scope
+  }
 
 
-component :: forall q i m. MonadEffect m => H.Component HH.HTML q i Message m
+component :: forall q m. MonadEffect m => H.Component HH.HTML q Input Message m
 component =
   H.mkComponent
-    { initialState: const initialState
+    { initialState: initialState
     , render
     , eval: H.mkEval $ H.defaultEval 
       { handleAction = handleAction 
+      , receive = Just <<< UpdateInput
       }
     }
   where
 
-  initialState :: State
-  initialState =
+  initialState :: Input -> State
+  initialState input =
     { isActive: true 
+    , scope: input.scope
     }
 
   render :: State -> H.ComponentHTML Action () m
@@ -64,3 +76,5 @@ component =
     Close -> do
       H.modify_ (_ { isActive = false })
       H.raise Canceled
+    UpdateInput input -> do
+      H.modify_ (_ { scope = input.scope })
