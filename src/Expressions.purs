@@ -7,7 +7,7 @@ import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
-import Data.Array (many)
+import Data.Array (some)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
 import Data.String.CodeUnits (fromCharArray)
@@ -63,5 +63,5 @@ exprParser = skipSpaces *> fix go
       , [ Infix (string "=>" <* skipSpaces $> ImplExpr) AssocRight ]
       ] 
       (between (string "(" <* skipSpaces) (string ")" <* skipSpaces) cont
-      <|> SymbolExpr <<< fromCharArray <$> (many letter <* skipSpaces) 
+      <|> SymbolExpr <<< fromCharArray <$> (some letter <* skipSpaces) 
       )

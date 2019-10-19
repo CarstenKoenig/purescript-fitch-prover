@@ -1,6 +1,6 @@
 module Environment 
   ( Environment
-  , AssumptionStack
+  , AssumptionStack (..)
   , runWith
   , currentScope, scopeLevel, inScope
   , assume, introduceImplication
@@ -11,6 +11,8 @@ import Prelude
 
 import Control.Monad.State (State, evalState, get, gets, modify, put, runState)
 import Data.Foldable (foldM, for_)
+import Data.Maybe (Maybe(..))
+import Data.Set (Set)
 import Data.Tuple (Tuple)
 import Expressions (Expr(..))
 import FitchRules (RuleInstance)
@@ -50,14 +52,15 @@ introduceImplication conclusion = do
 ----------------------------------------------------------------------
 -- tries to apply rule-results
 
-tryApply :: RuleInstance -> Environment Boolean
+tryApply :: RuleInstance -> Environment (Maybe (Set Expr))
 tryApply ruleInst = do
   applicable <- foldM (\ok p -> (ok && _) <$> inScope p) true ruleInst.premisses
+  newFacts <- Scope.newKnowledge ruleInst.conclusions <$> currentScope
   if not applicable
-  then pure false
+  then pure Nothing
   else do
-    for_ ruleInst.conclusions addExpr
-    pure true
+    for_ newFacts addExpr
+    pure (Just newFacts)
 
 ----------------------------------------------------------------------
 -- Scope related functions
