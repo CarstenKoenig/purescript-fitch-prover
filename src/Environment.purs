@@ -6,6 +6,7 @@ module Environment
   , assume, introduceImplication
   , tryApply
   , scopeOf
+  , addExpr
   ) where
 
 import Prelude

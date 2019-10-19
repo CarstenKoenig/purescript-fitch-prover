@@ -5,6 +5,7 @@ module Scope
   , include
   , remove
   , newKnowledge
+  , toArray
   ) where
 
 import Prelude
@@ -37,3 +38,6 @@ remove (Scope scope) expr =
 newKnowledge :: forall f. Foldable f => f Expr -> Scope -> Set Expr
 newKnowledge exprs (Scope scope) =
   Set.difference (Set.fromFoldable exprs) scope
+
+toArray :: Scope -> Array Expr
+toArray (Scope scope) = Set.toUnfoldable scope

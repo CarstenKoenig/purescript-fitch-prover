@@ -17,6 +17,7 @@ import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Scope (Scope)
+import Scope as Scope
 
 type Slot = H.Slot (Const Unit) Message
 
@@ -59,10 +60,23 @@ component =
   render :: State -> H.ComponentHTML Action () m
   render state =
       HH.div
-        [ HP.class_ $ ClassName $ if state.isActive then "modal is-active" else "modal" ] 
+        [ HP.class_ $ ClassName $ if state.isActive then "modal is-active is-clipped" else "modal" ] 
         [ HH.div [ HP.class_ $ ClassName "modal-background" ] []
-        , HH.div [ HP.class_ $ ClassName "modal-content" ]
-          []
+        , HH.div 
+          [ HP.class_ $ ClassName "modal-content" ]
+          [ HH.section
+            [ HP.class_ (ClassName "section") ]
+            [ HH.div
+              [ HP.class_ (ClassName "box") ] 
+              [ HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text "use rule" ]
+              ]
+            , HH.div
+              [ HP.class_ (ClassName "box") ] 
+              [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "facts in scope" ]
+              , showFacts state.scope 
+              ]
+            ]
+          ]
         , HH.button
           [ HP.class_ (ClassName "modal-close is-large")
           , HP.attr (AttrName "aria-label") "close"
@@ -78,3 +92,10 @@ component =
       H.raise Canceled
     UpdateInput input -> do
       H.modify_ (_ { scope = input.scope })
+
+  showFacts scope = HH.div
+    [ HP.class_ (ClassName "buttons is-marginless") ]
+    (map showFact $ Scope.toArray scope)
+  showFact expr = HH.button 
+    [ HP.class_ (ClassName "button") ] 
+    [ HH.text $ show expr ]

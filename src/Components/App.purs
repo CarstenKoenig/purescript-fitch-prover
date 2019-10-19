@@ -6,6 +6,7 @@ import Components.ApplyRuleModal as RuleDlg
 import Components.Button as Button
 import Components.NewExprButton as NewBtn
 import Components.Workspace as Ws
+import Data.Either (either)
 import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..), maybe)
@@ -15,7 +16,7 @@ import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Environment (AssumptionStack)
 import Environment as Env
-import Expressions (Expr)
+import Expressions (Expr, tryParse)
 import FitchRules (RuleInstance)
 import Halogen as H
 import Halogen.HTML as HH
@@ -24,6 +25,7 @@ import Scope as Scope
 
 data HistoryItem
   = UsedRule { ruleInstance :: RuleInstance, newFacts :: Set Expr }
+  | AddedPremisse { premisse :: Expr }
 
 useRule :: RuleInstance -> State -> State
 useRule ruleInst state =
@@ -34,6 +36,14 @@ useRule ruleInst state =
       state { currentStack = newStack
             , history = UsedRule { ruleInstance: ruleInst, newFacts: facts } : state.history
             }
+
+addPremisse :: Expr -> State -> State
+addPremisse prem state =
+  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.addExpr prem)
+  in state 
+    { currentStack = newStack
+    , history = AddedPremisse { premisse: prem } : state.history
+    }
 
 data Action
   = HandleButton Button.Message
@@ -80,6 +90,7 @@ component =
 
 initialState :: forall i. i -> State
 initialState _ =
+  either (const identity) addPremisse (tryParse "a | b") $
   { toggleCount: 0
   , buttonState: Nothing
   , showRuleModal: false
