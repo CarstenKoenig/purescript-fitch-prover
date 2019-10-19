@@ -10,7 +10,6 @@ import Control.Lazy (fix)
 import Data.Array (many)
 import Data.Either (Either)
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.String.CodeUnits (fromCharArray)
 import Text.Parsing.Parser (ParseError, Parser, runParser)
 import Text.Parsing.Parser.Combinators (between)
@@ -30,7 +29,26 @@ derive instance ordExpr :: Ord Expr
 derive instance genExpr :: Generic Expr _
 
 instance showExpr :: Show Expr where
-  show expr = genericShow expr
+  show expr = showPrec 0 expr
+
+showPrec :: Int -> Expr -> String
+showPrec _ (SymbolExpr s) = s
+showPrec _ (NegExpr expr) = 
+  "~" <> showPrec negPrec expr
+  where negPrec = 9
+showPrec prec (AndExpr a b) = 
+  wrap (prec > andPrec) (showPrec andPrec a <> " & " <> showPrec andPrec b)
+  where andPrec = 7
+showPrec prec (OrExpr a b) = 
+  wrap (prec > orPrec) (showPrec orPrec a <> " | " <> showPrec orPrec b)
+  where orPrec = 5
+showPrec prec (ImplExpr a b) = 
+  wrap (prec > implPrec) (showPrec (implPrec+1) a <> " => " <> showPrec implPrec b)
+  where implPrec = 3
+
+wrap :: Boolean -> String -> String
+wrap true s = "(" <> s <> ")"
+wrap false s = s
 
 tryParse :: String -> Either ParseError Expr
 tryParse s = runParser s exprParser
