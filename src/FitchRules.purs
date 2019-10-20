@@ -47,7 +47,7 @@ notIntroduction =
     a == a' && b' == NegExpr b
   validStep2 _ _ = false
   complete p1@(ImplExpr a _) p2 | validStep2 p1 p2 = Succeeded
-    { description: fold ["introduced from ", show p1, "and ", show p2]
+    { description: fold ["introduced from ", show p1, " and ", show p2]
     , premisses: [p1, p2]
     , conclusions: [NegExpr a]
     }

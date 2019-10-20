@@ -6,6 +6,7 @@ module Environment
   , assume, introduceImplication
   , tryApply
   , scopeOf
+  , stackDepth
   , addExpr
   ) where
 
@@ -42,14 +43,16 @@ assume expr = do
   newScope <- (flip Scope.include expr) <$> currentScope
   void $ modify (Assumed expr newScope)
 
-introduceImplication :: Expr -> Environment Boolean
+introduceImplication :: Expr -> Environment (Maybe Expr)
 introduceImplication conclusion = do
   curStack <- get
   case curStack of
     (Assumed expr subScope mainStack) | Scope.inScope subScope conclusion -> do
-      modifyScope (flip Scope.include $ ImplExpr expr conclusion) 
-      pure true
-    _ -> pure false
+      let newImpl = ImplExpr expr conclusion
+      put mainStack
+      modifyScope (flip Scope.include newImpl) 
+      pure $ Just newImpl
+    _ -> pure Nothing
 
 ----------------------------------------------------------------------
 -- tries to apply rule-results
