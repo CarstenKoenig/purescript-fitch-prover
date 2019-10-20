@@ -23,7 +23,6 @@ import Rules (RuleInstance, RuleRecipe, Rule)
 import Rules as Rule
 import Rules as Rules
 import Scope (Scope)
-import Scope as Scope
 
 type Slot = H.Slot (Const Unit) Message
 
@@ -132,7 +131,7 @@ component =
       H.modify_ (_ { isActive = false })
       H.raise (NewRule result)
     HandleNewExprButton (NewBtn.NewExpr expr) ->
-      H.modify_ (\st -> st { scope = Scope.include st.scope expr })
+      handleAction (ApplyExprToCurrentStep expr)
 
   showFacts facts | Array.null facts = HH.text ""
   showFacts facts =

@@ -3,6 +3,7 @@ module FitchRules
   , implicationElimination
   , andIntroduction, andElimination
   , orIntroduction, orElimination
+  , rules
   ) where
 
 import Prelude
@@ -11,6 +12,14 @@ import Data.Array as Array
 import Data.Foldable (fold)
 import Expressions (Expr(..))
 import Rules (Rule, RuleRecipe(..))
+
+rules :: Array Rule
+rules =
+  [ notIntroduction, notElimination
+  , implicationElimination
+  , andIntroduction, andElimination
+  , orIntroduction, orElimination
+  ]
 
 notIntroduction :: Rule
 notIntroduction =
