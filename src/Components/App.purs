@@ -7,8 +7,7 @@ import Data.Array as Array
 import Data.Either (either)
 import Data.List (List, (:))
 import Data.List as List
-import Data.Maybe (Maybe(..), maybe)
-import Data.Set (Set)
+import Data.Maybe (Maybe(..))
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
@@ -28,18 +27,16 @@ import Scope (Scope)
 import Scope as Scope
 
 data HistoryItem
-  = UsedRule { ruleInstance :: RuleInstance, newFacts :: Set Expr }
+  = UsedRule { ruleInstance :: RuleInstance, newFact :: Expr }
   | AddedPremisse { premisse :: Expr }
 
-useRule :: RuleInstance -> State -> State
-useRule ruleInst state =
-  let (Tuple newKnowledge newStack) = Env.runWith state.currentStack (Env.tryApply ruleInst)
-  in case newKnowledge of
-    Nothing -> state
-    Just facts -> 
-      state { currentStack = newStack
-            , history = UsedRule { ruleInstance: ruleInst, newFacts: facts } : state.history
-            }
+useRule :: { ruleInstance :: RuleInstance, newFact :: Expr } -> State -> State
+useRule r state =
+  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.tryApply r.ruleInstance)
+  in state 
+    { currentStack = newStack
+    , history = UsedRule r : state.history
+    }
 
 addPremisse :: Expr -> State -> State
 addPremisse prem state =
@@ -48,6 +45,26 @@ addPremisse prem state =
     { currentStack = newStack
     , history = AddedPremisse { premisse: prem } : state.history
     }
+
+showHistory :: forall w i. Array HistoryItem -> HTML w i
+showHistory items =
+  HH.div
+    [ HP.class_ (ClassName "box") ] 
+    [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
+    , HH.ol_
+      (map showItem items)
+    ]
+  where
+  showItem (AddedPremisse p) = 
+    HH.li_ [ HH.span_ [ HH.text "premisse: ", HH.strong_ [ HH.text $ show p.premisse ] ] ]
+  showItem (UsedRule r) =
+    HH.li_ 
+      [ HH.span_ 
+        [ HH.strong_ [ HH.text $ show r.newFact ] 
+        , HH.text " by rule "
+        , HH.em_ [ HH.text r.ruleInstance.description ] 
+        ]
+      ] 
 
 data Action
   = ShowRuleModal Rule
@@ -96,7 +113,8 @@ render state = HH.div_
         (Just <<< HandleRuleModal)
       Nothing -> HH.text "" 
   , HH.div_
-    [ showRuleButtons (Env.scopeOf state.currentStack) Fitch.rules
+    [ showHistory (List.toUnfoldable $ List.reverse state.history) 
+    , showRuleButtons (Env.scopeOf state.currentStack) Fitch.rules
     ]
   ]
 
@@ -106,8 +124,8 @@ handleAction = case _ of
     H.modify_ (\st -> st { showRuleModal = Just rule })
   HandleRuleModal RuleDlg.Canceled ->
     H.modify_ (\st -> st { showRuleModal = Nothing })
-  HandleRuleModal (RuleDlg.NewRule _) ->
-    H.modify_ (\st -> st { showRuleModal = Nothing })
+  HandleRuleModal (RuleDlg.NewRule r) ->
+    H.modify_ (\st -> useRule r $ st { showRuleModal = Nothing })
 
 showRuleButtons :: forall w. Scope -> Array Rule -> HTML w Action
 showRuleButtons _ rules | Array.null rules = HH.text ""
