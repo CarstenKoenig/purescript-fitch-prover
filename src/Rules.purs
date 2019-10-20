@@ -1,5 +1,6 @@
 module Rules
-  ( RuleRecipe (..)
+  ( Rule
+  , RuleRecipe (..)
   , RuleInstance
   , getLabelText
   , getRuleInstance
@@ -17,6 +18,10 @@ import Expressions (Expr)
 import Scope (Scope)
 import Scope as Scope
 
+type Rule =
+  { ruleName :: String
+  , ruleRecipe :: RuleRecipe
+  }
 
 data RuleRecipe
   = Step 

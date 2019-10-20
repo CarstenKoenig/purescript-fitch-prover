@@ -10,7 +10,7 @@ import Prelude
 import Data.Foldable (fold)
 import Data.Maybe (Maybe(..))
 import Expressions (Expr(..))
-import Rules (RuleInstance, RuleRecipe(..))
+import Rules (RuleInstance, RuleRecipe(..), Rule)
 
 notIntroduction :: Expr -> Expr -> Maybe RuleInstance
 notIntroduction p1@(ImplExpr a b) p2@(ImplExpr a' b')
@@ -21,14 +21,18 @@ notIntroduction p1@(ImplExpr a b) p2@(ImplExpr a' b')
     }
 notIntroduction _ _ = Nothing
 
-notElimination :: RuleRecipe
-notElimination = Step
-    { stepLabel: "Choose a known fact."
-    , stepIsValidExpr: validDoubleNot
-    , stepAllowNewExprs: false
-    , stepNext: step
+notElimination :: Rule 
+notElimination = 
+    { ruleName: "NOT elimination"
+    , ruleRecipe: recipe
     }
-    where
+    where 
+      recipe = Step
+        { stepLabel: "Choose a known fact."
+        , stepIsValidExpr: validDoubleNot
+        , stepAllowNewExprs: false
+        , stepNext: step
+        }
       step p@(NegExpr (NegExpr a)) = Succeeded
         { description: fold ["NOT-elimination of ", show p]
         , premisses: [p]

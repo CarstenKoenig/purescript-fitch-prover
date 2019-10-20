@@ -18,7 +18,8 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Rules (RuleInstance, RuleRecipe)
+import Rules (RuleInstance, RuleRecipe, Rule)
+import Rules as Rule
 import Rules as Rules
 import Scope (Scope)
 import Scope as Scope
@@ -33,8 +34,7 @@ data Message
 
 type Input =
   { scope :: Scope 
-  , mayIntroduceAdditionalFacts :: Boolean
-  , recipe :: RuleRecipe
+  , rule :: Rule
   }
 
 data Action 
@@ -46,9 +46,8 @@ data Action
 
 type State =
   { isActive :: Boolean 
-  , recipe :: RuleRecipe
+  , rule :: Rule
   , scope :: Scope
-  , mayIntroduceAdditionalFacts :: Boolean
   , currentStep :: RuleRecipe
   }
 
@@ -74,10 +73,9 @@ component =
   initialState :: Input -> State
   initialState input =
     { isActive: true 
-    , recipe: input.recipe
+    , rule: input.rule
     , scope: input.scope
-    , mayIntroduceAdditionalFacts: input.mayIntroduceAdditionalFacts
-    , currentStep: input.recipe
+    , currentStep: input.rule.ruleRecipe
     }
 
   render :: State -> H.ComponentHTML Action ChildSlots m
@@ -91,20 +89,23 @@ component =
             [ HP.class_ (ClassName "section") ]
             [ HH.div
               [ HP.class_ (ClassName "box") ] 
-              [ HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text "use rule" ]
+              [ HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text state.rule.ruleName ]
               , HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text $ Rules.getLabelText state.currentStep ]
               , maybe (HH.text "") showConclusions $ Rules.getRuleInstance state.currentStep
               ]
             , HH.div
               [ HP.class_ (ClassName "box") ] 
               [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "facts in scope" ]
-              , showFacts state.scope 
+              , showFacts $ Rule.filterScope state.currentStep state.scope 
               ]
-            , HH.div
-              [ HP.class_ (ClassName "box") ] 
-              [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "you might add additional facts" ]
-              , HH.slot _newExpr unit NewBtn.component unit (Just <<< HandleNewExprButton)
-              ]
+            , if Rules.allowNewExprs state.currentStep 
+              then HH.div
+                [ HP.class_ (ClassName "box") ] 
+                [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "you might add additional facts" ]
+                , HH.slot _newExpr unit NewBtn.component unit (Just <<< HandleNewExprButton)
+                ]
+              else
+                HH.text ""
             ]
           ]
         , HH.button
@@ -121,7 +122,10 @@ component =
       H.modify_ (_ { isActive = false })
       H.raise Canceled
     UpdateInput input -> do
-      H.modify_ (_ { scope = input.scope })
+      H.modify_ (_ { scope = input.scope
+                   , rule = input.rule
+                   , currentStep = input.rule.ruleRecipe
+                   })
     ApplyExprToCurrentStep expr -> do
       step <- H.gets _.currentStep
       case step of
@@ -133,9 +137,9 @@ component =
     HandleNewExprButton (NewBtn.NewExpr expr) ->
       H.modify_ (\st -> st { scope = Scope.include st.scope expr })
 
-  showFacts scope = HH.div
+  showFacts facts = HH.div
     [ HP.class_ (ClassName "buttons is-marginless") ]
-    (map showFact $ Scope.toArray scope)
+    (map showFact facts)
   showFact expr = HH.button 
     [ HP.class_ (ClassName "button") 
     , HE.onClick (\_ -> Just (ApplyExprToCurrentStep expr))

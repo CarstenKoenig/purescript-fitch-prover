@@ -33,8 +33,8 @@ instance showExpr :: Show Expr where
 
 showPrec :: Int -> Expr -> String
 showPrec _ (SymbolExpr s) = s
-showPrec _ (NegExpr expr) = 
-  "~" <> showPrec (negPrec+1) expr
+showPrec prec (NegExpr expr) = 
+  wrap (prec > negPrec) $ "~" <> showPrec (negPrec+1) expr
   where negPrec = 9
 showPrec prec (AndExpr a b) = 
   wrap (prec > andPrec) (showPrec (andPrec+1) a <> " & " <> showPrec (andPrec+1) b)

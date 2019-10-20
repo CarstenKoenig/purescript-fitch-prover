@@ -20,7 +20,7 @@ import FitchRules as Fitch
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Rules (RuleInstance, RuleRecipe)
+import Rules (RuleInstance, RuleRecipe, Rule)
 import Scope as Scope
 
 data HistoryItem
@@ -86,6 +86,7 @@ component =
 initialState :: forall i. i -> State
 initialState _ =
   either (const identity) addPremisse (tryParse "a | b") $
+  either (const identity) addPremisse (tryParse "~(~a)") $
   { toggleCount: 0
   , buttonState: Nothing
   , showRuleModal: true
@@ -100,8 +101,7 @@ render state = HH.div_
     then HH.slot _newRuleModal unit 
       RuleDlg.component 
         { scope: Env.scopeOf state.currentStack 
-        , mayIntroduceAdditionalFacts: true
-        , recipe: exampleRecipe
+        , rule: exampleRule
         } 
       (Just <<< HandleRuleModal)
     else HH.text "" 
@@ -136,5 +136,5 @@ handleAction = case _ of
     buttonState <- H.query _button unit $ H.request Button.IsOn
     H.modify_ (_ { buttonState = buttonState })
 
-exampleRecipe :: RuleRecipe
-exampleRecipe = Fitch.notElimination
+exampleRule :: Rule
+exampleRule = Fitch.notElimination
