@@ -17,7 +17,7 @@ import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Tuple (Tuple)
 import Expressions (Expr(..))
-import FitchRules (RuleInstance)
+import Rules (RuleInstance)
 import Scope (Scope)
 import Scope as Scope
 

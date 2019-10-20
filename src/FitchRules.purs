@@ -1,6 +1,5 @@
 module FitchRules
-  ( RuleInstance (..)
-  , notIntroduction, notElimination
+  ( notIntroduction, notElimination
   , implicationElimination
   , andIntroduction, andElimination
   , orIntroduction, orElimination
@@ -11,12 +10,7 @@ import Prelude
 import Data.Foldable (fold)
 import Data.Maybe (Maybe(..))
 import Expressions (Expr(..))
-
-type RuleInstance =
-  { description :: String
-  , premisses :: Array Expr
-  , conclusions :: Array Expr
-  }
+import Rules (RuleInstance, RuleRecipe(..))
 
 notIntroduction :: Expr -> Expr -> Maybe RuleInstance
 notIntroduction p1@(ImplExpr a b) p2@(ImplExpr a' b')
@@ -27,13 +21,22 @@ notIntroduction p1@(ImplExpr a b) p2@(ImplExpr a' b')
     }
 notIntroduction _ _ = Nothing
 
-notElimination :: Expr -> Maybe RuleInstance
-notElimination p@(NegExpr (NegExpr a)) = Just
-  { description: fold ["NOT-elimination: [", show p, "]"]
-  , premisses: [p]
-  , conclusions: [a]
-  }
-notElimination _ = Nothing
+notElimination :: RuleRecipe
+notElimination = Step
+    { stepLabel: "Choose a known fact."
+    , stepIsValidExpr: validDoubleNot
+    , stepAllowNewExprs: false
+    , stepNext: step
+    }
+    where
+      step p@(NegExpr (NegExpr a)) = Succeeded
+        { description: fold ["NOT-elimination of ", show p]
+        , premisses: [p]
+        , conclusions: [a]
+        }
+      step _ = Failed
+      validDoubleNot (NegExpr (NegExpr _)) = true
+      validDoubleNot _ = false
 
 implicationElimination :: Expr -> Expr -> Maybe RuleInstance
 implicationElimination p@(ImplExpr a b) a' | a == a' = Just

@@ -14,12 +14,12 @@ import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
 import Effect.Class (class MonadEffect)
 import Expressions (Expr)
-import FitchRules (RuleInstance)
 import Halogen (AttrName(..), ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Rules (RuleInstance)
 import Scope (Scope)
 import Scope as Scope
 
