@@ -3,7 +3,6 @@ module Components.App (component) where
 import Prelude
 
 import Components.ApplyRuleModal as RuleDlg
-import Components.Button as Button
 import Data.Array as Array
 import Data.Either (either)
 import Data.List (List, (:))
@@ -52,26 +51,18 @@ addPremisse prem state =
 
 data Action
   = ShowRuleModal Rule
-  | HandleButton Button.Message
   | HandleRuleModal RuleDlg.Message
-  | CheckButtonState
 
 type State =
-  { toggleCount :: Int
-  , buttonState :: Maybe Boolean
-  , showRuleModal :: Maybe Rule
+  { showRuleModal :: Maybe Rule
   , premisses :: Array Expr
   , currentStack :: AssumptionStack
   , history :: List HistoryItem
   }
 
 type ChildSlots =
-  ( button :: Button.Slot Unit
-  , newRuleModal :: RuleDlg.Slot Unit
+  ( newRuleModal :: RuleDlg.Slot Unit
   )
-
-_button :: SProxy "button"
-_button = SProxy
 
 _newRuleModal :: SProxy "newRuleModal"
 _newRuleModal = SProxy
@@ -88,9 +79,7 @@ initialState :: forall i. i -> State
 initialState _ =
   either (const identity) addPremisse (tryParse "a | b") $
   either (const identity) addPremisse (tryParse "~(~a)") $
-  { toggleCount: 0
-  , buttonState: Nothing
-  , showRuleModal: Nothing
+  { showRuleModal: Nothing
   , premisses: []
   , currentStack:  Env.NoAssumptions Scope.empty
   , history: List.Nil
@@ -107,19 +96,7 @@ render state = HH.div_
         (Just <<< HandleRuleModal)
       Nothing -> HH.text "" 
   , HH.div_
-    [ HH.slot _button unit Button.component unit (Just <<< HandleButton)
-    , HH.p_
-        [ HH.text ("Button has been toggled " <> show state.toggleCount <> " time(s)") ]
-    , HH.p_
-        [ HH.text
-            $ "Last time I checked, the button was: "
-            <> (maybe "(not checked yet)" (if _ then "on" else "off") state.buttonState)
-            <> ". "
-        , HH.button
-            [ HE.onClick (\_ -> Just CheckButtonState) ]
-            [ HH.text "Check now" ]
-        ]
-    , showRuleButtons (Env.scopeOf state.currentStack) Fitch.rules
+    [ showRuleButtons (Env.scopeOf state.currentStack) Fitch.rules
     ]
   ]
 
@@ -131,15 +108,6 @@ handleAction = case _ of
     H.modify_ (\st -> st { showRuleModal = Nothing })
   HandleRuleModal (RuleDlg.NewRule _) ->
     H.modify_ (\st -> st { showRuleModal = Nothing })
-  HandleButton (Button.Toggled _) -> do
-    H.modify_ (\st -> st { toggleCount = st.toggleCount + 1 })
-  CheckButtonState -> do
-    buttonState <- H.query _button unit $ H.request Button.IsOn
-    H.modify_ (_ { buttonState = buttonState })
-
-exampleRule :: Rule
-exampleRule = Fitch.notElimination
-
 
 showRuleButtons :: forall w. Scope -> Array Rule -> HTML w Action
 showRuleButtons _ rules | Array.null rules = HH.text ""
