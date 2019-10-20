@@ -11,4 +11,4 @@ import Problem as P
 main :: Effect Unit
 main = HA.runHalogenAff do
   body <- HA.awaitBody
-  runUI App.component P.problem2 body
+  runUI App.component P.problem3 body

@@ -1,3 +1,11 @@
 .history ol {
-  padding-left: 1em;
+  list-style-type: none;
+}
+
+.history ol li {
+  border-left-width: 2px;
+  border-left-style: double;
+  border-left-color: gray;
+  margin-left: 2px;
+  padding-left: 10px;
 }

@@ -2,6 +2,7 @@ module Problem
   ( Problem
   , problem1
   , problem2
+  , problem3
   ) where
 
 import Prelude
@@ -25,6 +26,12 @@ problem2 :: Problem
 problem2 =
   { goal: parse "a | ~a" 
   , premisses: []
+  }
+
+problem3 :: Problem
+problem3 =
+  { goal: parse "~b => ~a" 
+  , premisses: [parse "a => b"]
   }
 
 parse :: String -> Expr
