@@ -26,94 +26,18 @@ import Rules as Rules
 import Scope (Scope)
 import Scope as Scope
 
-data HistoryItem
-  = UsedRule { ruleInstance :: RuleInstance, newFact :: Expr }
-  | AddedPremisse { premisse :: Expr }
-  | NewAssumption { assumption :: Expr }
-  | FoundImplication { newFact :: Expr }
-
-useRule :: { ruleInstance :: RuleInstance, newFact :: Expr } -> State -> State
-useRule r state =
-  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.tryApply r.ruleInstance)
-  in state 
-    { currentStack = newStack
-    , history = UsedRule r : state.history
-    }
-
-addPremisse :: Expr -> State -> State
-addPremisse prem state =
-  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.addExpr prem)
-  in state 
-    { currentStack = newStack
-    , history = AddedPremisse { premisse: prem } : state.history
-    }
-
-addAssumption :: Expr -> State -> State
-addAssumption assumption state =
-  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.assume assumption)
-  in state 
-    { currentStack = newStack
-    , history = NewAssumption { assumption } : state.history
-    }
-
-addConclusion :: Expr -> State -> State
-addConclusion conclusion state =
-  let (Tuple found newStack) = Env.runWith state.currentStack (Env.introduceImplication conclusion)
-  in case found of
-    Nothing -> state
-    Just impl -> 
-      state
-        { currentStack = newStack
-        , history = FoundImplication { newFact: impl } : state.history
-        }
-
-
-showHistory :: forall w i. Array HistoryItem -> HTML w i
-showHistory items =
-  HH.div
-    [ HP.class_ (ClassName "box history") ] 
-    [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
-    , HH.ol_ (let res = go [] items in res.list)
-    ]
-  where
-  go acc hs =
-    case Array.uncons hs of
-      Nothing -> { add: HH.text "", rest: [], list: acc }
-      Just { head, tail } -> 
-        case head of
-          (AddedPremisse p) ->
-            let new = HH.li_ [ HH.span_ [ HH.text "premisse: ", HH.strong_ [ HH.text $ show p.premisse ] ] ]
-            in go (Array.snoc acc new) tail
-          (UsedRule r) ->
-            let 
-              new = HH.li_ 
-                [ HH.span_ 
-                  [ HH.strong_ [ HH.text $ show r.newFact ] 
-                  , HH.text " - "
-                  , HH.em_ [ HH.text r.ruleInstance.description ] 
-                  ]
-                ] 
-            in go (Array.snoc acc new) tail
-          (NewAssumption a) ->
-            let new = HH.li_ [ HH.span_ [ HH.text "assume: ", HH.strong_ [ HH.text $ show a.assumption ] ] ]
-                res = go [new] tail
-            in go (Array.snoc (Array.snoc acc (HH.li_ [HH.ol_ res.list])) res.add) res.rest
-          (FoundImplication impl) ->
-            let new = HH.li_ [ HH.span_ [ HH.strong_ [ HH.text $ show impl.newFact ] ] ]
-            in { add: new, rest: tail, list: acc }
-
-data Action
-  = ShowRuleModal Rule
-  | AddConclusion Expr
-  | HandleRuleModal RuleDlg.Message
-  | HandleAssumeNew NewBtn.Message
-
 type State =
   { showRuleModal :: Maybe Rule
   , premisses :: Array Expr
   , currentStack :: AssumptionStack
   , history :: List HistoryItem
   }
+
+data Action
+  = ShowRuleModal Rule
+  | AddConclusion Expr
+  | HandleRuleModal RuleDlg.Message
+  | HandleAssumeNew NewBtn.Message
 
 type ChildSlots =
   ( newRuleModal :: RuleDlg.Slot Unit
@@ -214,3 +138,82 @@ showImplButtons state =
     , HE.onClick (\_ -> Just $ AddConclusion expr)
     ]
     [ HH.text $ "=> " <> show expr ]
+
+----------------------------------------------------------------------
+-- History
+
+data HistoryItem
+  = UsedRule { ruleInstance :: RuleInstance, newFact :: Expr }
+  | AddedPremisse { premisse :: Expr }
+  | NewAssumption { assumption :: Expr }
+  | FoundImplication { newFact :: Expr }
+
+useRule :: { ruleInstance :: RuleInstance, newFact :: Expr } -> State -> State
+useRule r state =
+  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.tryApply r.ruleInstance)
+  in state 
+    { currentStack = newStack
+    , history = UsedRule r : state.history
+    }
+
+addPremisse :: Expr -> State -> State
+addPremisse prem state =
+  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.addExpr prem)
+  in state 
+    { currentStack = newStack
+    , history = AddedPremisse { premisse: prem } : state.history
+    }
+
+addAssumption :: Expr -> State -> State
+addAssumption assumption state =
+  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.assume assumption)
+  in state 
+    { currentStack = newStack
+    , history = NewAssumption { assumption } : state.history
+    }
+
+addConclusion :: Expr -> State -> State
+addConclusion conclusion state =
+  let (Tuple found newStack) = Env.runWith state.currentStack (Env.introduceImplication conclusion)
+  in case found of
+    Nothing -> state
+    Just impl -> 
+      state
+        { currentStack = newStack
+        , history = FoundImplication { newFact: impl } : state.history
+        }
+
+
+showHistory :: forall w i. Array HistoryItem -> HTML w i
+showHistory items =
+  HH.div
+    [ HP.class_ (ClassName "box history") ] 
+    [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
+    , HH.ol_ (let res = go [] items in res.list)
+    ]
+  where
+  go acc hs =
+    case Array.uncons hs of
+      Nothing -> { add: HH.text "", rest: [], list: acc }
+      Just { head, tail } -> 
+        case head of
+          (AddedPremisse p) ->
+            let new = HH.li_ [ HH.span_ [ HH.text "premisse: ", HH.strong_ [ HH.text $ show p.premisse ] ] ]
+            in go (Array.snoc acc new) tail
+          (UsedRule r) ->
+            let 
+              new = HH.li_ 
+                [ HH.span_ 
+                  [ HH.strong_ [ HH.text $ show r.newFact ] 
+                  , HH.text " - "
+                  , HH.em_ [ HH.text r.ruleInstance.description ] 
+                  ]
+                ] 
+            in go (Array.snoc acc new) tail
+          (NewAssumption a) ->
+            let new = HH.li_ [ HH.span_ [ HH.text "assume: ", HH.strong_ [ HH.text $ show a.assumption ] ] ]
+                res = go [new] tail
+            in go (Array.snoc (Array.snoc acc (HH.li_ [HH.ol_ res.list])) res.add) res.rest
+          (FoundImplication impl) ->
+            let new = HH.li_ [ HH.span_ [ HH.strong_ [ HH.text $ show impl.newFact ] ] ]
+            in { add: new, rest: tail, list: acc }
