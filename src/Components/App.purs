@@ -4,6 +4,7 @@ import Prelude
 
 import Components.ApplyRuleModal as RuleDlg
 import Components.NewExprButton as NewBtn
+import Data.Array (foldl)
 import Data.Array as Array
 import Data.List (List, (:))
 import Data.List as List
@@ -21,6 +22,7 @@ import Halogen.HTML (HTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Problem (Problem)
 import Rules (Rule, RuleInstance)
 import Rules as Rules
 import Scope (Scope)
@@ -28,7 +30,7 @@ import Scope as Scope
 
 type State =
   { showRuleModal :: Maybe Rule
-  , premisses :: Array Expr
+  , problem :: Problem
   , currentStack :: AssumptionStack
   , history :: List HistoryItem
   }
@@ -50,7 +52,7 @@ _newRuleModal = SProxy
 _assumeNew :: SProxy "assumeNew"
 _assumeNew = SProxy
 
-component :: forall q i o m. MonadEffect m => H.Component HH.HTML q i o m
+component :: forall q o m. MonadEffect m => H.Component HH.HTML q Problem o m
 component =
   H.mkComponent
     { initialState
@@ -58,10 +60,11 @@ component =
     , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
     }
 
-initialState :: forall i. i -> State
-initialState _ =
+initialState :: Problem -> State
+initialState problem =
+  flip (foldl (flip addPremisse)) problem.premisses
   { showRuleModal: Nothing
-  , premisses: []
+  , problem
   , currentStack:  Env.NoAssumptions Scope.empty
   , history: List.Nil
   }
@@ -77,7 +80,9 @@ render state = HH.div_
         (Just <<< HandleRuleModal)
       Nothing -> HH.text "" 
   , HH.div_
-    [ showHistory (List.toUnfoldable $ List.reverse state.history) 
+    [ showGoal state.problem
+    , showFound state
+    , showHistory (List.toUnfoldable $ List.reverse state.history) 
     , showAssumeNew
     , showRuleButtons (Env.scopeOf state.currentStack) Fitch.rules
     ]
@@ -139,6 +144,23 @@ showImplButtons state =
     ]
     [ HH.text $ "=> " <> show expr ]
 
+showGoal :: forall w i. Problem -> HTML w i
+showGoal problem =
+  HH.div
+    [ HP.class_ (ClassName "box") ] 
+    [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "Goal" ]
+    , HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text $ show problem.goal ]
+    ]
+
+showFound :: forall w i. State -> HTML w i
+showFound state | Scope.inScope (Env.scopeOf state.currentStack) state.problem.goal =
+  HH.div
+    [ HP.class_ (ClassName "notification is-success") ]
+    [ HH.h1 [ HP.class_ (ClassName "title")] [ HH.text "YOU did it!!!"] ]
+showFound _ =
+  HH.div
+    [ HP.class_ (ClassName "notification is-warning") ]
+    [ HH.h2 [ HP.class_ (ClassName "subtitle")] [ HH.text "keep going - you can make it"] ]
 ----------------------------------------------------------------------
 -- History
 
