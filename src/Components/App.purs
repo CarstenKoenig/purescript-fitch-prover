@@ -20,7 +20,7 @@ import FitchRules as Fitch
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Rules (RuleInstance, RuleRecipe, Rule)
+import Rules (Rule, RuleInstance)
 import Scope as Scope
 
 data HistoryItem

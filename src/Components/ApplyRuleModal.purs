@@ -8,6 +8,7 @@ module Components.ApplyRuleModal
 import Prelude
 
 import Components.NewExprButton as NewBtn
+import Data.Array as Array
 import Data.Const (Const)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Symbol (SProxy(..))
@@ -93,11 +94,7 @@ component =
               , HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text $ Rules.getLabelText state.currentStep ]
               , maybe (HH.text "") showConclusions $ Rules.getRuleInstance state.currentStep
               ]
-            , HH.div
-              [ HP.class_ (ClassName "box") ] 
-              [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "facts in scope" ]
-              , showFacts $ Rule.filterScope state.currentStep state.scope 
-              ]
+            , showFacts $ Rule.filterScope state.currentStep state.scope 
             , if Rules.allowNewExprs state.currentStep 
               then HH.div
                 [ HP.class_ (ClassName "box") ] 
@@ -137,20 +134,33 @@ component =
     HandleNewExprButton (NewBtn.NewExpr expr) ->
       H.modify_ (\st -> st { scope = Scope.include st.scope expr })
 
-  showFacts facts = HH.div
-    [ HP.class_ (ClassName "buttons is-marginless") ]
-    (map showFact facts)
+  showFacts facts | Array.null facts = HH.text ""
+  showFacts facts =
+    HH.div
+      [ HP.class_ (ClassName "box") ] 
+      [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "facts in scope" ]
+      , HH.div
+        [ HP.class_ (ClassName "buttons is-marginless") ]
+        (map showFact facts)
+      ]
   showFact expr = HH.button 
     [ HP.class_ (ClassName "button") 
     , HE.onClick (\_ -> Just (ApplyExprToCurrentStep expr))
     ] 
     [ HH.text $ show expr ]
 
-  showConclusions ruleInst = HH.div
-    [ HP.class_ (ClassName "buttons is-marginless") ]
-    (map (showConclusion ruleInst) ruleInst.conclusions)
+  showConclusions ruleInst =
+    if Array.null ruleInst.conclusions
+      then HH.text ""
+      else HH.div
+        [ HP.class_ (ClassName "box") ]
+        [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "choose result" ]
+        , HH.div
+          [ HP.class_ (ClassName "buttons is-marginless") ]
+          (map (showConclusion ruleInst) ruleInst.conclusions)
+        ]
   showConclusion ruleInst expr = HH.button 
-    [ HP.class_ (ClassName "button") 
+    [ HP.class_ (ClassName "button is-success") 
     , HE.onClick (\_ -> Just $ SelectResult { ruleInstance: ruleInst, newFact: expr })
     ] 
     [ HH.text $ show expr ]
