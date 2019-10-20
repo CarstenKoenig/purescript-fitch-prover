@@ -4,7 +4,7 @@ import Prelude
 
 import Components.ApplyRuleModal as RuleDlg
 import Components.NewExprButton as NewBtn
-import Data.Array (foldl)
+import Data.Array (foldl, intercalate)
 import Data.Array as Array
 import Data.List (List, (:))
 import Data.List as List
@@ -150,6 +150,11 @@ showGoal problem =
     [ HP.class_ (ClassName "box") ] 
     [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "Goal" ]
     , HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text $ show problem.goal ]
+    , HH.h3 
+      [ HP.class_ (ClassName "subtitle") ]
+      [ HH.text $ "premisses: " 
+      , HH.strong_ [ HH.text $ intercalate ", " (map show problem.premisses) ]
+      ]
     ]
 
 showFound :: forall w i. State -> HTML w i

@@ -1,7 +1,7 @@
 module Problem 
   ( Problem
-  , aOrNotA
   , problem1
+  , problem2
   ) where
 
 import Prelude
@@ -21,8 +21,8 @@ problem1 =
   , premisses: [parse "a", parse "a => b"]
   }
 
-aOrNotA :: Problem
-aOrNotA =
+problem2 :: Problem
+problem2 =
   { goal: parse "a | ~a" 
   , premisses: []
   }
