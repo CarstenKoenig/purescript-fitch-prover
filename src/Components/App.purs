@@ -212,8 +212,9 @@ showHistory items =
             in go (Array.snoc acc new) tail
           (NewAssumption a) ->
             let new = HH.li_ [ HH.span_ [ HH.text "assume: ", HH.strong_ [ HH.text $ show a.assumption ] ] ]
-                res = go [new] tail
-            in go (Array.snoc (Array.snoc acc (HH.li_ [HH.ol_ res.list])) res.add) res.rest
+                res = go [] tail
+                addSub = if Array.null res.list then identity else flip Array.snoc (HH.li_ [HH.ol_ res.list])
+            in go (Array.snoc (addSub (Array.snoc acc new)) res.add) res.rest
           (FoundImplication impl) ->
             let new = HH.li_ [ HH.span_ [ HH.strong_ [ HH.text $ show impl.newFact ] ] ]
             in { add: new, rest: tail, list: acc }
