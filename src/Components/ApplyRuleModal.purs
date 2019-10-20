@@ -2,7 +2,6 @@ module Components.ApplyRuleModal
   ( Message (..)
   , Slot
   , Input
-  , RuleRecipe (..)
   , component
   ) where
 
@@ -19,26 +18,10 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Rules (RuleInstance)
+import Rules (RuleInstance, RuleRecipe)
+import Rules as Rules
 import Scope (Scope)
 import Scope as Scope
-
-data RuleRecipe
-  = Step { stepLabel :: String
-         , step :: Expr -> RuleRecipe
-         }
-  | Failed
-  | Completed RuleInstance
-
-getLabelText :: RuleRecipe -> String
-getLabelText Failed = "sorry that did not work out"
-getLabelText (Completed ruleInst) = ruleInst.description
-getLabelText (Step s) = s.stepLabel
-
-getRuleInstance :: RuleRecipe -> Maybe RuleInstance
-getRuleInstance Failed = Nothing
-getRuleInstance (Step _) = Nothing
-getRuleInstance (Completed ruleInst) = Just ruleInst
 
 type Slot = H.Slot (Const Unit) Message
 
@@ -109,8 +92,8 @@ component =
             [ HH.div
               [ HP.class_ (ClassName "box") ] 
               [ HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text "use rule" ]
-              , HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text $ getLabelText state.currentStep ]
-              , maybe (HH.text "") showConclusions $ getRuleInstance state.currentStep
+              , HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text $ Rules.getLabelText state.currentStep ]
+              , maybe (HH.text "") showConclusions $ Rules.getRuleInstance state.currentStep
               ]
             , HH.div
               [ HP.class_ (ClassName "box") ] 
@@ -142,7 +125,7 @@ component =
     ApplyExprToCurrentStep expr -> do
       step <- H.gets _.currentStep
       case step of
-        Step s -> H.modify_ (_ { currentStep = s.step expr })
+        Rules.Step s -> H.modify_ (_ { currentStep = s.stepNext expr })
         _ -> pure unit
     SelectResult result -> do
       H.modify_ (_ { isActive = false })

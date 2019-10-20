@@ -20,7 +20,7 @@ import FitchRules as Fitch
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
-import Rules (RuleInstance)
+import Rules (RuleInstance, RuleRecipe)
 import Scope as Scope
 
 data HistoryItem
@@ -136,12 +136,5 @@ handleAction = case _ of
     buttonState <- H.query _button unit $ H.request Button.IsOn
     H.modify_ (_ { buttonState = buttonState })
 
-exampleRecipe :: RuleDlg.RuleRecipe
-exampleRecipe =
-  RuleDlg.Step
-    { stepLabel: "OR-introduction know fact?"
-    , step: \fact -> RuleDlg.Step
-      { stepLabel: "Or-introduction additional expr"
-      , step: \expr -> RuleDlg.Completed (Fitch.orIntroduction fact expr)
-      }
-    }
+exampleRecipe :: RuleRecipe
+exampleRecipe = Fitch.notElimination
