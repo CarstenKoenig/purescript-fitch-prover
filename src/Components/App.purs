@@ -94,7 +94,7 @@ initialState _ =
   either (const identity) addPremisse (tryParse "a | b") $
   { toggleCount: 0
   , buttonState: Nothing
-  , showRuleModal: false
+  , showRuleModal: true
   , premisses: []
   , currentStack:  Env.NoAssumptions Scope.empty
   , history: List.Nil

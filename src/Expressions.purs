@@ -37,13 +37,13 @@ showPrec _ (NegExpr expr) =
   "~" <> showPrec negPrec expr
   where negPrec = 9
 showPrec prec (AndExpr a b) = 
-  wrap (prec > andPrec) (showPrec andPrec a <> " & " <> showPrec andPrec b)
+  wrap (prec > andPrec) (showPrec (andPrec+1) a <> " & " <> showPrec (andPrec+1) b)
   where andPrec = 7
 showPrec prec (OrExpr a b) = 
-  wrap (prec > orPrec) (showPrec orPrec a <> " | " <> showPrec orPrec b)
+  wrap (prec > orPrec) (showPrec (orPrec+1) a <> " | " <> showPrec (orPrec+1) b)
   where orPrec = 5
 showPrec prec (ImplExpr a b) = 
-  wrap (prec > implPrec) (showPrec (implPrec+1) a <> " => " <> showPrec implPrec b)
+  wrap (prec > implPrec) (showPrec (implPrec+1) a <> " => " <> showPrec (implPrec+1) b)
   where implPrec = 3
 
 wrap :: Boolean -> String -> String
