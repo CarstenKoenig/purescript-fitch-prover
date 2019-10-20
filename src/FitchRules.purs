@@ -7,19 +7,42 @@ module FitchRules
 
 import Prelude
 
+import Data.Array as Array
 import Data.Foldable (fold)
-import Data.Maybe (Maybe(..))
 import Expressions (Expr(..))
-import Rules (RuleInstance, RuleRecipe(..), Rule)
+import Rules (Rule, RuleRecipe(..))
 
-notIntroduction :: Expr -> Expr -> Maybe RuleInstance
-notIntroduction p1@(ImplExpr a b) p2@(ImplExpr a' b')
-  | a == a' && (b == NegExpr b' || b' == NegExpr b) = Just
-    { description: fold ["NOT-introduction: [", show p1, "], [", show p2, "]"]
+notIntroduction :: Rule
+notIntroduction =
+  { ruleName: "NOT introduction"
+  , ruleRecipe: recipe
+  }
+  where
+  recipe = step1
+  step1 = Step
+    { stepLabel: "Choose an implication"
+    , stepIsValidExpr: validStep1
+    , stepAllowNewExprs: false
+    , stepNext: step2
+    }
+  validStep1 (ImplExpr _ _) = true
+  validStep1 _ = false
+  step2 p1@(ImplExpr a b) = Step
+    { stepLabel: "Choose contradiction"
+    , stepIsValidExpr: validStep2 p1
+    , stepAllowNewExprs: false
+    , stepNext: complete p1
+    }
+  step2 _ = Failed
+  validStep2 (ImplExpr a b) (ImplExpr a' b') =
+    a == a' && b' == NegExpr b
+  validStep2 _ _ = false
+  complete p1@(ImplExpr a _) p2 | validStep2 p1 p2 = Succeeded
+    { description: fold ["introduced from ", show p1, "and ", show p2]
     , premisses: [p1, p2]
     , conclusions: [NegExpr a]
     }
-notIntroduction _ _ = Nothing
+  complete _ _ = Failed
 
 notElimination :: Rule 
 notElimination = 
@@ -34,7 +57,7 @@ notElimination =
         , stepNext: step
         }
       step p@(NegExpr (NegExpr a)) = Succeeded
-        { description: fold ["NOT-elimination of ", show p]
+        { description: fold ["eliminated ", show p]
         , premisses: [p]
         , conclusions: [a]
         }
@@ -42,46 +65,144 @@ notElimination =
       validDoubleNot (NegExpr (NegExpr _)) = true
       validDoubleNot _ = false
 
-implicationElimination :: Expr -> Expr -> Maybe RuleInstance
-implicationElimination p@(ImplExpr a b) a' | a == a' = Just
-  { description: fold ["=> - elimination: [", show p, "], [", show a, "]"]
-  , premisses: [p, a]
-  , conclusions: [b]
+implicationElimination :: Rule
+implicationElimination =
+  { ruleName: "=> elimination"
+  , ruleRecipe: recipe
   }
-implicationElimination a' p@(ImplExpr a b) | a == a' = Just
-  { description: fold ["=> - elimination: [", show p, "], [", show a, "]"]
-  , premisses: [p, a]
-  , conclusions: [b]
-  }
-implicationElimination _ _ = Nothing
-
-andIntroduction :: Expr -> Expr -> RuleInstance
-andIntroduction a b =
-  { description: fold ["AND-introduction: [", show a, "], [", show b, "]"]
-  , premisses: [a,b]
-  , conclusions: [ AndExpr a b, AndExpr b a ]
-  }
-
-andElimination :: Expr -> Maybe RuleInstance
-andElimination p@(AndExpr a b) = Just
-  { description: fold ["AND-elimination: [", show p, "]"]
-  , premisses: [p]
-  , conclusions: [a,b]
-  }
-andElimination _ = Nothing
-
-orIntroduction :: Expr -> Expr -> RuleInstance
-orIntroduction a b =
-  { description: fold ["OR-introduction: [", show a, "] | [", show b, "]"]
-  , premisses: [a]
-  , conclusions: [ OrExpr a b, OrExpr b a ]
-  }
-
-orElimination :: Expr -> Expr -> Expr -> Maybe RuleInstance
-orElimination p1@(OrExpr a b) p2@(ImplExpr a' c) p3@(ImplExpr b' c')
-  | a == a' && b == b' && c == c' = Just
-    { description: fold [ "OR-elimination: [", show b, "], [", show c, "] with [", show a, "]"] 
-    , premisses: [p1,p2,p3]
-    , conclusions: [c]
+  where
+  recipe = step1
+  step1 = Step
+    { stepLabel: "Choose an implication"
+    , stepIsValidExpr: validStep1
+    , stepAllowNewExprs: false
+    , stepNext: step2
     }
-orElimination _ _ _ = Nothing
+  validStep1 (ImplExpr _ _) = true
+  validStep1 _ = false
+  step2 p1@(ImplExpr a b) = Step
+    { stepLabel: "choose premisse"
+    , stepIsValidExpr: validStep2 p1
+    , stepAllowNewExprs: false
+    , stepNext: complete p1
+    }
+  step2 _ = Failed
+  validStep2 (ImplExpr a _) a' =
+    a == a'
+  validStep2 _ _ = false
+  complete p1@(ImplExpr a b) a' | validStep2 p1 a' = Succeeded
+    { description: fold ["eliminated ", show p1, " with ", show a']
+    , premisses: [p1, a']
+    , conclusions: [b]
+    }
+  complete _ _ = Failed
+
+andIntroduction :: Rule
+andIntroduction =
+  { ruleName: "AND introduction"
+  , ruleRecipe: recipe
+  }
+  where
+  recipe = step1
+  step1 = Step
+    { stepLabel: "Choose a known fact."
+    , stepIsValidExpr: const true
+    , stepAllowNewExprs: false
+    , stepNext: step2
+    }
+  step2 a = Step
+    { stepLabel: "Choose a second fact."
+    , stepIsValidExpr: const true
+    , stepAllowNewExprs: false
+    , stepNext: complete a
+    }
+  complete a b = Succeeded
+    { description: fold ["introduced from ", show a, " and ", show b]
+    , premisses: [a,b]
+    , conclusions: Array.nub [ AndExpr a b, AndExpr b a ]
+    }
+
+andElimination :: Rule 
+andElimination = 
+    { ruleName: "AND elimination"
+    , ruleRecipe: recipe
+    }
+    where 
+      recipe = Step
+        { stepLabel: "Choose a known conjunction."
+        , stepIsValidExpr: validAnd
+        , stepAllowNewExprs: false
+        , stepNext: step
+        }
+      step p@(AndExpr a b) = Succeeded
+        { description: fold ["eliminated ", show p]
+        , premisses: [p]
+        , conclusions: Array.nub [a, b]
+        }
+      step _ = Failed
+      validAnd (AndExpr _ _) = true
+      validAnd _ = false
+
+orIntroduction :: Rule
+orIntroduction =
+  { ruleName: "OR introduction"
+  , ruleRecipe: recipe
+  }
+  where
+  recipe = step1
+  step1 = Step
+    { stepLabel: "Choose a known fact."
+    , stepIsValidExpr: const true
+    , stepAllowNewExprs: false
+    , stepNext: step2
+    }
+  step2 a = Step
+    { stepLabel: "Choose a second."
+    , stepIsValidExpr: const true
+    , stepAllowNewExprs: true
+    , stepNext: complete a
+    }
+  complete a b = Succeeded
+    { description: fold ["introduced from ", show a, " and ", show b]
+    , premisses: [a]
+    , conclusions: Array.nub [ OrExpr a b, OrExpr b a ]
+    }
+
+orElimination :: Rule 
+orElimination = 
+    { ruleName: "OR elimination"
+    , ruleRecipe: recipe
+    }
+    where 
+      recipe = Step
+        { stepLabel: "Choose a known fact."
+        , stepIsValidExpr: validOr
+        , stepAllowNewExprs: false
+        , stepNext: step1
+        }
+      validOr (OrExpr _ _) = true
+      validOr _ = false
+      step1 or@(OrExpr a _) = Step
+        { stepLabel: "Choose first implication."
+        , stepIsValidExpr: validImpl1 a
+        , stepAllowNewExprs: false
+        , stepNext: step2 or
+        }
+      step1 _ = Failed
+      validImpl1 a (ImplExpr a' _) | a == a' = true
+      validImpl1 _ _ = false
+      step2 or@(OrExpr a b) i1@(ImplExpr _ c) | validImpl1 a i1 = Step
+        { stepLabel: "Choose second implication."
+        , stepIsValidExpr: validImpl2 b c
+        , stepAllowNewExprs: false
+        , stepNext: completed or i1
+        }
+      step2 _ _ = Failed
+      validImpl2 b c (ImplExpr b' c') | b == b' && c == c' = true
+      validImpl2 _ _ _ = false
+      completed or@(OrExpr a b) i1@(ImplExpr _ c) i2 | validImpl2 b c i2  = Succeeded
+        { description: fold ["eliminated ", show or, " with ", show i1, " and ", show i2]
+        , premisses: [or, i1, i2]
+        , conclusions: [c]
+        }
+      completed _ _ _ = Failed
