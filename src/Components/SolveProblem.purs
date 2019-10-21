@@ -1,4 +1,4 @@
-module Components.App (component) where
+module Components.SolveProblem (component) where
 
 import Prelude
 

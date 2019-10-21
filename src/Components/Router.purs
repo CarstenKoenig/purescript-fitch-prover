@@ -2,21 +2,18 @@ module Components.Router where
 
 import Prelude hiding ((/))
 
-import Components.App as App
-
+import Components.SolveProblem as SP
 import Data.Const (Const)
 import Data.Either (hush)
-
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
-import Halogen (HalogenM, liftEffect)
+import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
-import Problem (Problem)
 import Problem as P
 import Routing.Duplex (RouteDuplex', int, print, root, segment)
 import Routing.Duplex as RD
@@ -40,7 +37,7 @@ routeCodec = root $ sum
   , "Problem": int segment
   }
 
-navigate :: forall st act slot msg m. MonadEffect m => Route -> HalogenM st act slot msg m Unit
+navigate :: forall m. MonadEffect m => Route -> m Unit
 navigate = liftEffect <<< setHash <<< print routeCodec
 
 type State =
@@ -92,8 +89,12 @@ component = H.mkComponent
   render { route } = case route of
     Just r -> case r of
       Home -> 
-        HH.slot (SProxy :: _ "home") unit App.component P.problem1 absurd
+        HH.slot (SProxy :: _ "home") unit SP.component P.problem1 absurd
       Problem p -> 
-        HH.slot (SProxy :: _ "home") unit App.component (P.getProblem p) absurd
+        case P.getProblem p of
+          Nothing ->
+            HH.div_ [ HH.text "Oh no! I don't know this problem." ]
+          Just problem ->
+            HH.slot (SProxy :: _ "problem") unit SP.component problem absurd
     Nothing ->
       HH.div_ [ HH.text "Oh no! That page wasn't found." ]

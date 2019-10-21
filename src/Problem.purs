@@ -9,6 +9,7 @@ module Problem
 import Prelude
 
 import Data.Either (fromRight)
+import Data.Maybe (Maybe(..))
 import Expressions (Expr, tryParse)
 import Partial.Unsafe (unsafePartial)
 
@@ -17,12 +18,12 @@ type Problem =
   , premisses :: Array Expr
   }
 
-getProblem :: Int -> Problem
+getProblem :: Int -> Maybe Problem
 getProblem = case _ of
-  1 -> problem1
-  2 -> problem2
-  3 -> problem3
-  _ -> problem1
+  1 -> Just problem1
+  2 -> Just problem2
+  3 -> Just problem3
+  _ -> Nothing
 
 problem1 :: Problem
 problem1 =
