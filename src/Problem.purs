@@ -1,5 +1,6 @@
 module Problem 
   ( Problem
+  , getProblem
   , problem1
   , problem2
   , problem3
@@ -15,6 +16,13 @@ type Problem =
   { goal :: Expr
   , premisses :: Array Expr
   }
+
+getProblem :: Int -> Problem
+getProblem = case _ of
+  1 -> problem1
+  2 -> problem2
+  3 -> problem3
+  _ -> problem1
 
 problem1 :: Problem
 problem1 =

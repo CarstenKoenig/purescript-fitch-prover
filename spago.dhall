@@ -11,6 +11,8 @@ You can edit this file as you like.
     , "halogen"
     , "parsing"
     , "psci-support"
+    , "routing"
+    , "routing-duplex"
     , "transformers"
     ]
 , packages =

@@ -40,6 +40,7 @@ data Action
   | AddConclusion Expr
   | HandleRuleModal RuleDlg.Message
   | HandleAssumeNew NewBtn.Message
+  | ChangeProblem Problem
 
 type ChildSlots =
   ( newRuleModal :: RuleDlg.Slot Unit
@@ -57,7 +58,7 @@ component =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction }
+    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, receive = Just <<< ChangeProblem }
     }
 
 initialState :: Problem -> State
@@ -98,6 +99,9 @@ render state = HH.div_
 
 handleAction ::forall o m. Action -> H.HalogenM State Action ChildSlots o m Unit
 handleAction = case _ of
+  ChangeProblem p -> do
+    let newState = initialState p
+    H.put newState
   ShowRuleModal rule ->
     H.modify_ (\st -> st { showRuleModal = Just rule })
   HandleRuleModal RuleDlg.Canceled ->
