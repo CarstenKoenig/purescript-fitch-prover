@@ -1,6 +1,7 @@
 module Data.Problem 
   ( Problem
   , getProblem
+  , problems
   , problem1
   , problem2
   , problem3
@@ -14,7 +15,9 @@ import Data.Expressions (Expr, tryParse)
 import Partial.Unsafe (unsafePartial)
 
 type Problem =
-  { goal :: Expr
+  { name :: String
+  , number :: Int
+  , goal :: Expr
   , premisses :: Array Expr
   }
 
@@ -25,21 +28,34 @@ getProblem = case _ of
   3 -> Just problem3
   _ -> Nothing
 
+problems :: Array Problem
+problems =
+  [ problem1
+  , problem2
+  , problem3
+  ]
+
 problem1 :: Problem
 problem1 =
-  { goal: parse "b" 
+  { name: "modus ponens"
+  , number: 1
+  , goal: parse "b" 
   , premisses: [parse "a", parse "a => b"]
   }
 
 problem2 :: Problem
 problem2 =
-  { goal: parse "a | ~a" 
+  { name: "law of excluded middle" 
+  , number: 2
+  , goal: parse "a | ~a" 
   , premisses: []
   }
 
 problem3 :: Problem
 problem3 =
-  { goal: parse "~b => ~a" 
+  { name: "contraposition"
+  , number: 3
+  , goal: parse "~b => ~a" 
   , premisses: [parse "a => b"]
   }
 

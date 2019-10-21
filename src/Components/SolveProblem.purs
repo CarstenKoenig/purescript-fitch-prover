@@ -14,6 +14,7 @@ import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
 import Data.Problem (Problem)
+import Data.Route as R
 import Data.Rules (Rule, RuleInstance)
 import Data.Rules as Rules
 import Data.Scope (Scope)
@@ -159,6 +160,7 @@ showGoal problem =
       [ HH.text $ "premisses: " 
       , HH.strong_ [ HH.text $ intercalate ", " (map show problem.premisses) ]
       ]
+    , HH.a [ R.routeHref R.Home ] [ HH.text "back to problems.." ]
     ]
 
 showFound :: forall w i. State -> HTML w i

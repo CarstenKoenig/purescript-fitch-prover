@@ -2,25 +2,21 @@ module Components.Router where
 
 import Prelude hiding ((/))
 
+import Components.ChooseProblem as CP
 import Components.SolveProblem as SP
 import Data.Const (Const)
 import Data.Either (hush)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Problem as P
-import Data.Route (Route)
+import Data.Route (Route, navigate)
 import Data.Route as Route
 import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
-import Effect.Class (class MonadEffect)
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
-import Routing.Duplex (print)
 import Routing.Duplex as RD
-import Routing.Hash (getHash, setHash)
-
-navigate :: forall m. MonadEffect m => Route -> m Unit
-navigate = liftEffect <<< setHash <<< print Route.codec
+import Routing.Hash (getHash)
 
 type State =
   { route :: Maybe Route
@@ -71,7 +67,7 @@ component = H.mkComponent
   render { route } = case route of
     Just r -> case r of
       Route.Home -> 
-        HH.slot (SProxy :: _ "home") unit SP.component P.problem1 absurd
+        HH.slot (SProxy :: _ "home") unit CP.component {} absurd
       Route.Problem p -> 
         case P.getProblem p of
           Nothing ->
