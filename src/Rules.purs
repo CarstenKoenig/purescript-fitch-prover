@@ -6,14 +6,16 @@ module Rules
   , getRuleInstance
   , filterScope
   , isCompleted
+  , conclusions
   , isValidExpr
   , allowNewExprs
   , isUsableWith
+  , autoStep
   ) where
 
 import Prelude
 
-import Data.Array (any, filter)
+import Data.Array (any, filter, mapMaybe)
 import Data.Maybe (Maybe(..))
 import Expressions (Expr)
 import Scope (Scope)
@@ -61,6 +63,11 @@ isCompleted (Step _) = false
 isCompleted Failed = true
 isCompleted (Succeeded _) = true
 
+conclusions :: RuleRecipe -> Array Expr
+conclusions (Step _) = []
+conclusions Failed = []
+conclusions (Succeeded ruleInst) = ruleInst.conclusions
+
 isValidExpr :: RuleRecipe -> Expr -> Boolean
 isValidExpr (Step s) = s.stepIsValidExpr
 isValidExpr Failed = const false
@@ -85,3 +92,19 @@ isUsableWith (Step s) scope = any tryFindAssignments $ Scope.toArray scope
   tryFindAssignments expr | s.stepIsValidExpr expr =
     isUsableWith (s.stepNext expr) scope
   tryFindAssignments _ = false
+
+-- | continues to use Facts in Scope as there are only one fitting
+autoStep :: Scope -> RuleRecipe -> RuleRecipe
+autoStep _ Failed = Failed
+autoStep _ st@(Succeeded _) = st
+autoStep _ st@(Step s) | s.stepAllowNewExprs = st
+autoStep scope st@(Step s) =
+  let fittingFacts = mapMaybe tryStep $ Scope.toArray scope
+  in case fittingFacts of
+    [single] -> autoStep scope single
+    _ -> st
+  where
+  tryStep expr | s.stepIsValidExpr expr =
+    let nextStep = s.stepNext expr
+    in if isUsableWith nextStep scope then Just nextStep else Nothing
+  tryStep _ = Nothing

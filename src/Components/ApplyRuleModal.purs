@@ -43,6 +43,7 @@ data Action
   | ApplyExprToCurrentStep Expr
   | SelectResult { ruleInstance :: RuleInstance, newFact :: Expr }
   | HandleNewExprButton NewBtn.Message
+  | Initialize
 
 type State =
   { isActive :: Boolean 
@@ -66,6 +67,7 @@ component =
     , eval: H.mkEval $ H.defaultEval 
       { handleAction = handleAction 
       , receive = Just <<< UpdateInput
+      , initialize = Just Initialize
       }
     }
   where
@@ -75,7 +77,7 @@ component =
     { isActive: true 
     , rule: input.rule
     , scope: input.scope
-    , currentStep: input.rule.ruleRecipe
+    , currentStep: Rules.autoStep input.scope input.rule.ruleRecipe
     }
 
   render :: State -> H.ComponentHTML Action ChildSlots m
@@ -125,13 +127,29 @@ component =
     ApplyExprToCurrentStep expr -> do
       step <- H.gets _.currentStep
       case step of
-        Rules.Step s -> H.modify_ (_ { currentStep = s.stepNext expr })
-        _ -> pure unit
+        Rules.Step s -> do
+          st <- H.modify (\st -> st { currentStep = Rules.autoStep st.scope (s.stepNext expr)})
+          autoComplete st
+        _ -> 
+          pure unit
+    Initialize -> do
+      st <- H.get
+      autoComplete st
     SelectResult result -> do
       H.modify_ (_ { isActive = false })
       H.raise (NewRule result)
     HandleNewExprButton (NewBtn.NewExpr expr) ->
       handleAction (ApplyExprToCurrentStep expr)
+    where
+      autoComplete st =
+        case Rules.getRuleInstance st.currentStep of
+          Just ruleInst ->
+            case ruleInst.conclusions of
+              [single] -> do
+                H.raise (NewRule { newFact: single, ruleInstance: ruleInst })
+                H.modify_ (_ { isActive = false })
+              _ -> pure unit
+          _ -> pure unit
 
   showFacts facts | Array.null facts = HH.text ""
   showFacts facts =
