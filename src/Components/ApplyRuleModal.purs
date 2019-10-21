@@ -10,19 +10,18 @@ import Prelude
 import Components.NewExprButton as NewBtn
 import Data.Array as Array
 import Data.Const (Const)
+import Data.Expressions (Expr)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Rules (RuleInstance, RuleRecipe, Rule)
+import Data.Rules as Rules
 import Data.Symbol (SProxy(..))
+import Data.Scope (Scope)
 import Effect.Class (class MonadEffect)
-import Expressions (Expr)
 import Halogen (AttrName(..), ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Rules (RuleInstance, RuleRecipe, Rule)
-import Rules as Rule
-import Rules as Rules
-import Scope (Scope)
 
 type Slot = H.Slot (Const Unit) Message
 
@@ -95,7 +94,7 @@ component =
               , HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text $ Rules.getLabelText state.currentStep ]
               , maybe (HH.text "") showConclusions $ Rules.getRuleInstance state.currentStep
               ]
-            , showFacts $ Rule.filterScope state.currentStep state.scope 
+            , showFacts $ Rules.filterScope state.currentStep state.scope 
             , if Rules.allowNewExprs state.currentStep 
               then HH.div
                 [ HP.class_ (ClassName "box") ] 

@@ -1,4 +1,4 @@
-module Scope 
+module Data.Scope 
   ( Scope
   , empty
   , inScope
@@ -14,7 +14,7 @@ import Data.Foldable (class Foldable)
 import Data.Newtype (class Newtype)
 import Data.Set (Set)
 import Data.Set as Set
-import Expressions (Expr)
+import Data.Expressions (Expr)
 
 newtype Scope = Scope (Set Expr)
 

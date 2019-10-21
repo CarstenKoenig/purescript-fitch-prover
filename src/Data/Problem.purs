@@ -1,4 +1,4 @@
-module Problem 
+module Data.Problem 
   ( Problem
   , getProblem
   , problem1
@@ -10,7 +10,7 @@ import Prelude
 
 import Data.Either (fromRight)
 import Data.Maybe (Maybe(..))
-import Expressions (Expr, tryParse)
+import Data.Expressions (Expr, tryParse)
 import Partial.Unsafe (unsafePartial)
 
 type Problem =

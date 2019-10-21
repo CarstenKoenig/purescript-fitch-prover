@@ -1,4 +1,4 @@
-module Expressions
+module Data.Expressions
   ( Expr (..)
   , tryParse
   ) where

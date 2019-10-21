@@ -1,4 +1,4 @@
-module Environment 
+module Data.Environment 
   ( Environment
   , AssumptionStack (..)
   , runWith
@@ -17,10 +17,10 @@ import Data.Foldable (foldM, for_)
 import Data.Maybe (Maybe(..))
 import Data.Set (Set)
 import Data.Tuple (Tuple)
-import Expressions (Expr(..))
-import Rules (RuleInstance)
-import Scope (Scope)
-import Scope as Scope
+import Data.Expressions (Expr(..))
+import Data.Rules (RuleInstance)
+import Data.Scope (Scope)
+import Data.Scope as Scope
 
 type Environment a = State AssumptionStack a
 

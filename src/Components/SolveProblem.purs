@@ -6,27 +6,27 @@ import Components.ApplyRuleModal as RuleDlg
 import Components.NewExprButton as NewBtn
 import Data.Array (foldl, intercalate)
 import Data.Array as Array
+import Data.Environment (AssumptionStack)
+import Data.Environment as Env
+import Data.Expressions (Expr)
+import Data.FitchRules as Fitch
 import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..))
+import Data.Problem (Problem)
+import Data.Rules (Rule, RuleInstance)
+import Data.Rules as Rules
+import Data.Scope (Scope)
+import Data.Scope as Scope
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
-import Environment (AssumptionStack)
-import Environment as Env
-import Expressions (Expr)
-import FitchRules as Fitch
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Problem (Problem)
-import Rules (Rule, RuleInstance)
-import Rules as Rules
-import Scope (Scope)
-import Scope as Scope
 
 type State =
   { showRuleModal :: Maybe Rule

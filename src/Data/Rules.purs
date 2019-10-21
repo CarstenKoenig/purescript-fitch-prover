@@ -1,4 +1,4 @@
-module Rules
+module Data.Rules
   ( Rule
   , RuleRecipe (..)
   , RuleInstance
@@ -17,9 +17,9 @@ import Prelude
 
 import Data.Array (any, filter, mapMaybe)
 import Data.Maybe (Maybe(..))
-import Expressions (Expr)
-import Scope (Scope)
-import Scope as Scope
+import Data.Expressions (Expr)
+import Data.Scope (Scope)
+import Data.Scope as Scope
 
 type Rule =
   { ruleName :: String

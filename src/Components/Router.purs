@@ -6,6 +6,7 @@ import Components.SolveProblem as SP
 import Data.Const (Const)
 import Data.Either (hush)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Problem as P
 import Data.Route (Route)
 import Data.Route as Route
 import Data.Symbol (SProxy(..))
@@ -14,7 +15,6 @@ import Effect.Class (class MonadEffect)
 import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
-import Problem as P
 import Routing.Duplex (print)
 import Routing.Duplex as RD
 import Routing.Hash (getHash, setHash)

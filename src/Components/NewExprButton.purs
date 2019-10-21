@@ -4,9 +4,9 @@ import Prelude
 
 import Data.Const (Const)
 import Data.Either (Either(..), either)
+import Data.Expressions (Expr, tryParse)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect, liftEffect)
-import Expressions (Expr, tryParse)
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH

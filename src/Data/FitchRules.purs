@@ -1,4 +1,4 @@
-module FitchRules
+module Data.FitchRules
   ( notIntroduction, notElimination
   , implicationElimination
   , andIntroduction, andElimination
@@ -10,8 +10,8 @@ import Prelude
 
 import Data.Array as Array
 import Data.Foldable (fold)
-import Expressions (Expr(..))
-import Rules (Rule, RuleRecipe(..))
+import Data.Expressions (Expr(..))
+import Data.Rules (Rule, RuleRecipe(..))
 
 rules :: Array Rule
 rules =
