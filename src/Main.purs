@@ -4,6 +4,7 @@ import Prelude
 
 import Components.Router as R
 import Data.Maybe (Maybe(..))
+import Data.Route as Route
 import Effect (Effect)
 import Effect.Aff (launchAff_)
 import Effect.Class (liftEffect)
@@ -19,6 +20,6 @@ main = HA.runHalogenAff do
 
   halogenIO <- runUI R.component {} body
 
-  void $ liftEffect $ matchesWith (RD.parse R.routeCodec) \old new -> do
+  void $ liftEffect $ matchesWith (RD.parse Route.codec) \old new -> do
     when (old /= Just new) do
       launchAff_ $ halogenIO.query $ H.tell $ R.Navigate new

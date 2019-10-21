@@ -5,9 +5,9 @@ import Prelude hiding ((/))
 import Components.SolveProblem as SP
 import Data.Const (Const)
 import Data.Either (hush)
-import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Route (Route)
+import Data.Route as Route
 import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
@@ -15,33 +15,15 @@ import Halogen (liftEffect)
 import Halogen as H
 import Halogen.HTML as HH
 import Problem as P
-import Routing.Duplex (RouteDuplex', int, print, root, segment)
+import Routing.Duplex (print)
 import Routing.Duplex as RD
-import Routing.Duplex.Generic (noArgs, sum)
 import Routing.Hash (getHash, setHash)
 
-data Route
-  = Home
-  | Problem Int
-
-derive instance genericRoute :: Generic Route _
-derive instance eqRoute :: Eq Route
-derive instance ordRoute :: Ord Route
-
-instance showRoute :: Show Route where
-  show = genericShow
-
-routeCodec :: RouteDuplex' Route
-routeCodec = root $ sum
-  { "Home": noArgs
-  , "Problem": int segment
-  }
-
 navigate :: forall m. MonadEffect m => Route -> m Unit
-navigate = liftEffect <<< setHash <<< print routeCodec
+navigate = liftEffect <<< setHash <<< print Route.codec
 
 type State =
-  { route :: Maybe Route 
+  { route :: Maybe Route
   }
 
 data Query a
@@ -72,9 +54,9 @@ component = H.mkComponent
   handleAction = case _ of
     Initialize -> do
       -- first we'll get the route the user landed on
-      initialRoute <- hush <<< (RD.parse routeCodec) <$> liftEffect getHash
+      initialRoute <- hush <<< (RD.parse Route.codec) <$> liftEffect getHash
       -- then we'll navigate to the new route (also setting the hash)
-      navigate $ fromMaybe Home initialRoute
+      navigate $ fromMaybe Route.Home initialRoute
 
   handleQuery :: forall a. Query a -> H.HalogenM State Action ChildSlots Void m (Maybe a)
   handleQuery = case _ of
@@ -88,9 +70,9 @@ component = H.mkComponent
   render :: State -> H.ComponentHTML Action ChildSlots m
   render { route } = case route of
     Just r -> case r of
-      Home -> 
+      Route.Home -> 
         HH.slot (SProxy :: _ "home") unit SP.component P.problem1 absurd
-      Problem p -> 
+      Route.Problem p -> 
         case P.getProblem p of
           Nothing ->
             HH.div_ [ HH.text "Oh no! I don't know this problem." ]
