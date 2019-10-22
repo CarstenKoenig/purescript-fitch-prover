@@ -5,6 +5,7 @@ import Prelude
 import Data.Const (Const)
 import Data.Either (Either(..), either)
 import Data.Expressions (Expr, tryParse)
+import Data.Foldable (traverse_)
 import Data.Maybe (Maybe(..))
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen (ClassName(..))
@@ -15,6 +16,7 @@ import Halogen.HTML.Properties as HP
 import Text.Parsing.Parser (ParseError(..), parseErrorMessage)
 import Text.Parsing.Parser.Pos (initialPos)
 import Web.Event.Event (Event, preventDefault)
+import Web.HTML.HTMLElement (focus)
 
 type Slot = H.Slot (Const Unit) Message
 
@@ -23,6 +25,7 @@ data Message = NewExpr Expr
 data Action 
   = Toggle
   | ChangeInput String
+  | Cancel
   | Submit Event
 
 data State 
@@ -68,7 +71,10 @@ component =
           [ HH.input
             [ HP.title "enter an expression pls"
             , HE.onValueInput (\newInput -> Just (ChangeInput newInput))
+            , HE.onFocusOut (\_ -> Just Cancel)
             , HP.value inputState.input
+            , HP.autofocus true
+            , HP.ref (H.RefLabel "input")
             , HP.classes $ map ClassName [ "input", either (const "is-danger") (const "is-success") inputState.result ]
             ]
           ]
@@ -81,10 +87,15 @@ component =
 
   handleAction :: Action -> H.HalogenM State Action () Message m Unit
   handleAction = case _ of
-    Toggle -> H.modify_ (case _ of
+    Toggle -> do
+      H.modify_ (case _ of
         Inactive -> Inputting { input: "", result: Left (ParseError "no input" initialPos)}
         Inputting _ -> Inactive
       )
+      -- focus on input
+      H.getHTMLElementRef (H.RefLabel "input") >>= traverse_ (liftEffect <<< focus)
+    Cancel -> 
+      H.modify_ (const Inactive)
     ChangeInput newInput -> H.modify_ (case _ of
         Inactive -> Inactive
         Inputting state -> Inputting $ state { input = newInput, result = tryParse newInput }
