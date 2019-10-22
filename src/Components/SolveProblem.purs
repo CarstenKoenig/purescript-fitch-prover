@@ -6,7 +6,7 @@ import Components.ApplyRuleModal as RuleDlg
 import Components.NewExprButton as NewBtn
 import Data.Array (foldl, intercalate)
 import Data.Array as Array
-import Data.Environment (AssumptionStack)
+import Data.Environment (AssumptionStack, Environment)
 import Data.Environment as Env
 import Data.Expressions (Expr)
 import Data.FitchRules as Fitch
@@ -32,8 +32,7 @@ import Halogen.HTML.Properties as HP
 type State =
   { showRuleModal :: Maybe Rule
   , problem :: Problem
-  , currentStack :: AssumptionStack
-  , history :: List HistoryItem
+  , history :: List { item :: HistoryItem, stack :: AssumptionStack }
   }
 
 data Action
@@ -67,7 +66,6 @@ initialState problem =
   flip (foldl (flip addPremisse)) problem.premisses
   { showRuleModal: Nothing
   , problem
-  , currentStack:  Env.NoAssumptions Scope.empty
   , history: List.Nil
   }
 
@@ -76,7 +74,7 @@ render state = HH.div_
   [ case state.showRuleModal of
       Just rule -> HH.slot _newRuleModal unit 
         RuleDlg.component 
-          { scope: Env.scopeOf state.currentStack 
+          { scope: curScope
           , rule
           } 
         (Just <<< HandleRuleModal)
@@ -84,12 +82,13 @@ render state = HH.div_
   , HH.div_
     [ showGoal state.problem
     , showFound state
-    , showHistory (List.toUnfoldable $ List.reverse state.history) 
+    , showHistory (List.toUnfoldable $ List.reverse $ map _.item state.history) 
     , showAssumeNew
-    , showRuleButtons (Env.scopeOf state.currentStack) Fitch.rules
+    , showRuleButtons curScope Fitch.rules
     ]
   ]
   where
+  curScope = currentScope state
   showAssumeNew =
     HH.div
       [ HP.class_ (ClassName "box") ] 
@@ -133,14 +132,14 @@ showRuleButtons scope rules =
     [ HH.text rule.ruleName ]
 
 showImplButtons :: forall w. State -> HTML w Action
-showImplButtons state | Env.stackDepth state.currentStack <= 0 = HH.text ""
+showImplButtons state | Env.stackDepth (currentStack state) <= 0 = HH.text ""
 showImplButtons state =
   HH.div
     [ HP.class_ (ClassName "box") ] 
     [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "results" ]
     , HH.div
       [ HP.class_ (ClassName "buttons is-marginless") ]
-      (map showImplButton $ Scope.toArray $ Env.scopeOf state.currentStack)
+      (map showImplButton $ Scope.toArray $ currentScope state)
     ]
   where
   showImplButton expr = HH.button 
@@ -164,7 +163,7 @@ showGoal problem =
     ]
 
 showFound :: forall w i. State -> HTML w i
-showFound state | Scope.inScope (Env.scopeOf state.currentStack) state.problem.goal =
+showFound state | Scope.inScope (currentScope state) state.problem.goal =
   HH.div
     [ HP.class_ (ClassName "notification is-success") ]
     [ HH.h1 [ HP.class_ (ClassName "title")] [ HH.text "YOU did it!!!"] ]
@@ -175,6 +174,33 @@ showFound _ =
 ----------------------------------------------------------------------
 -- History
 
+currentStack :: State -> AssumptionStack
+currentStack state =
+  case List.uncons state.history of
+    Just { head, tail: _ } -> head.stack
+    Nothing -> Env.NoAssumptions (initialScope state)
+
+initialScope :: State -> Scope
+initialScope state = 
+  foldl Scope.include Scope.empty state.problem.premisses
+
+currentScope :: State -> Scope
+currentScope = Env.scopeOf <<< currentStack
+
+runWith :: forall a. State -> Environment a -> Tuple a AssumptionStack
+runWith state = Env.runWith (currentStack state)
+
+addNewItem :: State -> Environment HistoryItem -> State
+addNewItem state comp = 
+  maybeAddNewItem state (comp >>= (pure <<< Just))
+
+maybeAddNewItem :: State -> Environment (Maybe HistoryItem) -> State
+maybeAddNewItem state comp =
+  case runWith state comp of
+    Tuple (Just newItem) newStack ->
+      state { history = { item: newItem, stack: newStack } : state.history }
+    Tuple Nothing _ -> state
+
 data HistoryItem
   = UsedRule { ruleInstance :: RuleInstance, newFact :: Expr }
   | AddedPremisse { premisse :: Expr }
@@ -182,40 +208,24 @@ data HistoryItem
   | FoundImplication { newFact :: Expr }
 
 useRule :: { ruleInstance :: RuleInstance, newFact :: Expr } -> State -> State
-useRule r state =
-  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.tryApply r.ruleInstance)
-  in state 
-    { currentStack = newStack
-    , history = UsedRule r : state.history
-    }
+useRule r state = addNewItem state $ do
+  _ <- Env.tryApply r.ruleInstance
+  pure $ UsedRule r
 
 addPremisse :: Expr -> State -> State
-addPremisse prem state =
-  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.addExpr prem)
-  in state 
-    { currentStack = newStack
-    , history = AddedPremisse { premisse: prem } : state.history
-    }
+addPremisse prem state = addNewItem state $ do
+  _ <- Env.addExpr prem
+  pure $ AddedPremisse { premisse: prem }
 
 addAssumption :: Expr -> State -> State
-addAssumption assumption state =
-  let (Tuple _ newStack) = Env.runWith state.currentStack (Env.assume assumption)
-  in state 
-    { currentStack = newStack
-    , history = NewAssumption { assumption } : state.history
-    }
+addAssumption assumption state = addNewItem state $ do
+  _ <- Env.assume assumption
+  pure $ NewAssumption { assumption }
 
 addConclusion :: Expr -> State -> State
-addConclusion conclusion state =
-  let (Tuple found newStack) = Env.runWith state.currentStack (Env.introduceImplication conclusion)
-  in case found of
-    Nothing -> state
-    Just impl -> 
-      state
-        { currentStack = newStack
-        , history = FoundImplication { newFact: impl } : state.history
-        }
-
+addConclusion conclusion state = maybeAddNewItem state $ do
+  found <- Env.introduceImplication conclusion
+  pure $ map (\newFact -> FoundImplication { newFact }) found
 
 showHistory :: forall w i. Array HistoryItem -> HTML w i
 showHistory items =
