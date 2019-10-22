@@ -38,6 +38,7 @@ type State =
 data Action
   = ShowRuleModal Rule
   | AddConclusion Expr
+  | UndoAction
   | HandleRuleModal RuleDlg.Message
   | HandleAssumeNew NewBtn.Message
   | ChangeProblem Problem
@@ -82,7 +83,7 @@ render state = HH.div_
   , HH.div_
     [ showGoal state.problem
     , showFound state
-    , showHistory (List.toUnfoldable $ List.reverse $ map _.item state.history) 
+    , showHistory state
     , showAssumeNew
     , showRuleButtons curScope Fitch.rules
     ]
@@ -102,6 +103,8 @@ handleAction = case _ of
   ChangeProblem p -> do
     let newState = initialState p
     H.put newState
+  UndoAction ->
+    H.modify_ undo
   ShowRuleModal rule ->
     H.modify_ (\st -> st { showRuleModal = Just rule })
   HandleRuleModal RuleDlg.Canceled ->
@@ -174,6 +177,20 @@ showFound _ =
 ----------------------------------------------------------------------
 -- History
 
+undo :: State -> State
+undo state =
+  case List.uncons state.history of
+    Just { head: { item: AddedPremisse _ } } -> state
+    Just { tail } ->  state { history = tail }
+    Nothing -> state
+
+canUndo :: State -> Boolean
+canUndo state =
+  case List.uncons state.history of
+    Just { head: { item: AddedPremisse _ } } -> false
+    Just _ ->  true
+    Nothing -> false
+
 currentStack :: State -> AssumptionStack
 currentStack state =
   case List.uncons state.history of
@@ -227,14 +244,21 @@ addConclusion conclusion state = maybeAddNewItem state $ do
   found <- Env.introduceImplication conclusion
   pure $ map (\newFact -> FoundImplication { newFact }) found
 
-showHistory :: forall w i. Array HistoryItem -> HTML w i
-showHistory items =
+showHistory :: forall w . State -> HTML w Action
+showHistory state =
   HH.div
     [ HP.class_ (ClassName "box history") ] 
     [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
     , HH.ol_ (let res = go [] items in res.list)
+    , HH.button 
+      [ HP.class_ (ClassName "button undo") 
+      , HP.disabled (not $ canUndo state)
+      , HE.onClick (\_ -> Just UndoAction)
+      ]
+      [ HH.text "undo" ]
     ]
   where
+  items = List.toUnfoldable $ List.reverse $ map _.item state.history
   go acc hs =
     case Array.uncons hs of
       Nothing -> { add: HH.text "", rest: [], list: acc }
