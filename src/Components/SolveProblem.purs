@@ -80,12 +80,21 @@ render state = HH.div_
           } 
         (Just <<< HandleRuleModal)
       Nothing -> HH.text "" 
-  , HH.div_
+  , HH.div_ 
     [ showGoal state.problem
-    , showFound state
-    , showHistory state
-    , showAssumeNew
-    , showRuleButtons curScope Fitch.rules
+    , HH.div
+      [ HP.class_ (ClassName "columns")]
+      [ HH.div
+        [ HP.class_ (ClassName "column") ]
+        [ showFound state
+        , showHistory state 
+        ]
+      , HH.div
+        [ HP.class_ (ClassName "column") ]
+        [ showRuleButtons curScope Fitch.rules
+        , showAssumeNew
+        ]
+      ]
     ]
   ]
   where
