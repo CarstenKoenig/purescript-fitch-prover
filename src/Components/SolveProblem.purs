@@ -255,16 +255,18 @@ addConclusion conclusion state = maybeAddNewItem state $ do
 
 showHistory :: forall w . State -> HTML w Action
 showHistory state =
-  HH.div
-    [ HP.class_ (ClassName "box history") ] 
-    [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
-    , HH.ol_ (let res = go [] items in res.list)
-    , HH.button 
-      [ HP.class_ (ClassName "button undo") 
+  HH.div_
+    [ HH.button 
+      [ HP.class_ (ClassName "button undo is-pulled-right") 
       , HP.disabled (not $ canUndo state)
       , HE.onClick (\_ -> Just UndoAction)
       ]
-      [ HH.text "undo" ]
+      [ HH.i [ HP.class_ (ClassName "fas fa-undo-alt")] [] ]
+    , HH.div
+      [ HP.class_ (ClassName "box history") ] 
+      [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
+      , HH.ol_ (let res = go [] items in res.list)
+      ]
     ]
   where
   items = List.toUnfoldable $ List.reverse $ map _.item state.history
