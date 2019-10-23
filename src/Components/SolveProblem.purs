@@ -3,6 +3,7 @@ module Components.SolveProblem (component) where
 import Prelude
 
 import Components.ApplyRuleModal as RuleDlg
+import Components.Fontawesome as FA
 import Components.NewExprButton as NewBtn
 import Data.Array (foldl, intercalate)
 import Data.Array as Array
@@ -261,38 +262,40 @@ showHistory state =
       , HP.disabled (not $ canUndo state)
       , HE.onClick (\_ -> Just UndoAction)
       ]
-      [ HH.i [ HP.class_ (ClassName "fas fa-undo-alt")] [] ]
+      [ FA.undoSymbol[] ]
     , HH.div
       [ HP.class_ (ClassName "box history") ] 
       [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
-      , HH.ol_ (let res = go [] items in res.list)
+      , HH.withKeys_ HH.ol_ (let res = go 1 [] items in res.list)
       ]
     ]
   where
   items = List.toUnfoldable $ List.reverse $ map _.item state.history
-  go acc hs =
+  go index acc hs =
     case Array.uncons hs of
-      Nothing -> { add: HH.text "", rest: [], list: acc }
+      Nothing -> { add: addIndex (HH.text ""), rest: [], list: acc }
       Just { head, tail } -> 
         case head of
           (AddedPremisse p) ->
-            let new = HH.li_ [ HH.span_ [ HH.text "premisse: ", HH.strong_ [ HH.text $ show p.premisse ] ] ]
-            in go (Array.snoc acc new) tail
+            let new = addIndex $ HH.li_ [ HH.span_ [ HH.text "premisse: ", HH.strong_ [ HH.text $ show p.premisse ] ] ]
+            in go (index+1) (Array.snoc acc new) tail
           (UsedRule r) ->
             let 
-              new = HH.li_ 
+              new = addIndex $ HH.li_ 
                 [ HH.span_ 
                   [ HH.strong_ [ HH.text $ show r.newFact ] 
                   , HH.text " - "
                   , HH.em_ [ HH.text r.ruleInstance.description ] 
                   ]
                 ] 
-            in go (Array.snoc acc new) tail
+            in go (index+1) (Array.snoc acc new) tail
           (NewAssumption a) ->
-            let new = HH.li_ [ HH.span_ [ HH.text "assume: ", HH.strong_ [ HH.text $ show a.assumption ] ] ]
-                res = go [] tail
-                addSub = if Array.null res.list then identity else flip Array.snoc (HH.li_ [HH.ol_ res.list])
-            in go (Array.snoc (addSub (Array.snoc acc new)) res.add) res.rest
+            let new = addIndex $ HH.li_ [ HH.span_ [ HH.text "assume: ", HH.strong_ [ HH.text $ show a.assumption ] ] ]
+                res = go (index+1) [] tail
+                addSub = if Array.null res.list then identity else flip Array.snoc (addIndex $ HH.li_ [HH.withKeys_ HH.ol_ res.list])
+            in go (index+1) (Array.snoc (addSub (Array.snoc acc new)) res.add) res.rest
           (FoundImplication impl) ->
-            let new = HH.li_ [ HH.span_ [ HH.strong_ [ HH.text $ show impl.newFact ] ] ]
+            let new = addIndex $ HH.li_ [ HH.span_ [ HH.strong_ [ HH.text $ show impl.newFact ] ] ]
             in { add: new, rest: tail, list: acc }
+    where
+    addIndex = Tuple ("history_" <> show index)

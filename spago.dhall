@@ -13,6 +13,7 @@ You can edit this file as you like.
     , "psci-support"
     , "routing"
     , "routing-duplex"
+    , "svg-parser-halogen"
     , "transformers"
     ]
 , packages =
