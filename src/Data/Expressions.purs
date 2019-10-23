@@ -1,6 +1,8 @@
 module Data.Expressions
   ( Expr (..)
   , tryParse
+  , RenderConfig
+  , render
   ) where
 
 import Prelude hiding (between)
@@ -29,26 +31,48 @@ derive instance ordExpr :: Ord Expr
 derive instance genExpr :: Generic Expr _
 
 instance showExpr :: Show Expr where
-  show expr = showPrec 0 expr
+  show = render stringConfig
 
-showPrec :: Int -> Expr -> String
-showPrec _ (SymbolExpr s) = s
-showPrec prec (NegExpr expr) = 
-  wrap (prec > negPrec) $ "~" <> showPrec (negPrec+1) expr
-  where negPrec = 9
-showPrec prec (AndExpr a b) = 
-  wrap (prec > andPrec) (showPrec (andPrec+1) a <> " & " <> showPrec (andPrec+1) b)
-  where andPrec = 7
-showPrec prec (OrExpr a b) = 
-  wrap (prec > orPrec) (showPrec (orPrec+1) a <> " | " <> showPrec (orPrec+1) b)
-  where orPrec = 5
-showPrec prec (ImplExpr a b) = 
-  wrap (prec > implPrec) (showPrec (implPrec+1) a <> " => " <> showPrec (implPrec+1) b)
-  where implPrec = 3
+stringConfig :: RenderConfig String
+stringConfig =
+  { and: \a b -> a <> " & " <> b
+  , or: \a b -> a <> " | " <> b
+  , impl: \a b -> a <> " => " <> b
+  , not: \a -> "~" <> a
+  , inBraces: \a -> "(" <> a <> ")"
+  , renderString: identity
+  }
 
-wrap :: Boolean -> String -> String
-wrap true s = "(" <> s <> ")"
-wrap false s = s
+type RenderConfig a =
+  { and :: a -> a -> a
+  , or :: a -> a -> a
+  , impl :: a -> a -> a
+  , not :: a -> a
+  , inBraces :: a -> a
+  , renderString :: String -> a
+  }
+
+render :: forall a. RenderConfig a -> Expr -> a
+render config = renderPrec config 0
+
+renderPrec :: forall a. RenderConfig a -> Int -> Expr -> a
+renderPrec config = go
+  where
+  go _ (SymbolExpr s) = config.renderString s
+  go prec (NegExpr expr) = 
+    wrap (prec > negPrec) $ config.not $ go (negPrec+1) expr
+    where negPrec = 9
+  go prec (AndExpr a b) = 
+    wrap (prec > andPrec) $ go (andPrec+1) a `config.and` go (andPrec+1) b
+    where andPrec = 7
+  go prec (OrExpr a b) = 
+    wrap (prec > orPrec) $ go (orPrec+1) a `config.or` go (orPrec+1) b
+    where orPrec = 5
+  go prec (ImplExpr a b) = 
+    wrap (prec > implPrec) $ go (implPrec+1) a `config.impl` go (implPrec+1) b
+    where implPrec = 3
+  wrap true = config.inBraces 
+  wrap false = identity
 
 tryParse :: String -> Either ParseError Expr
 tryParse s = runParser s exprParser
