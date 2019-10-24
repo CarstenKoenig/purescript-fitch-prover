@@ -9,7 +9,7 @@ import Data.Array (foldl, intercalate)
 import Data.Array as Array
 import Data.Environment (AssumptionStack, Environment)
 import Data.Environment as Env
-import Data.Expressions (Expr)
+import Data.Expressions (Expr(..))
 import Data.FitchRules as Fitch
 import Data.List (List, (:))
 import Data.List as List
@@ -22,13 +22,14 @@ import Data.Scope (Scope)
 import Data.Scope as Scope
 import Data.Symbol (SProxy(..))
 import Data.Tuple (Tuple(..))
-import Effect.Class (class MonadEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Halogen (ClassName(..))
 import Halogen as H
 import Halogen.HTML (HTML)
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import MathJaxRenderer as MathJax
 
 type State =
   { showRuleModal :: Maybe Rule
@@ -37,7 +38,8 @@ type State =
   }
 
 data Action
-  = ShowRuleModal Rule
+  = Initialized
+  | ShowRuleModal Rule
   | AddConclusion Expr
   | UndoAction
   | HandleRuleModal RuleDlg.Message
@@ -60,7 +62,11 @@ component =
   H.mkComponent
     { initialState
     , render
-    , eval: H.mkEval $ H.defaultEval { handleAction = handleAction, receive = Just <<< ChangeProblem }
+    , eval: H.mkEval $ H.defaultEval 
+      { handleAction = handleAction
+      , receive = Just <<< ChangeProblem 
+      , initialize = Just Initialized
+      }
     }
 
 initialState :: Problem -> State
@@ -108,23 +114,26 @@ render state = HH.div_
       , showImplButtons state
       ]
 
-handleAction ::forall o m. Action -> H.HalogenM State Action ChildSlots o m Unit
-handleAction = case _ of
-  ChangeProblem p -> do
-    let newState = initialState p
-    H.put newState
-  UndoAction ->
-    H.modify_ undo
-  ShowRuleModal rule ->
-    H.modify_ (\st -> st { showRuleModal = Just rule })
-  HandleRuleModal RuleDlg.Canceled ->
-    H.modify_ (\st -> st { showRuleModal = Nothing })
-  HandleRuleModal (RuleDlg.NewRule r) ->
-    H.modify_ (\st -> useRule r $ st { showRuleModal = Nothing })
-  HandleAssumeNew (NewBtn.NewExpr expr) ->
-    H.modify_ (addAssumption expr)
-  AddConclusion expr ->
-    H.modify_ (addConclusion expr)
+handleAction ::forall o m. MonadEffect m => Action -> H.HalogenM State Action ChildSlots o m Unit
+handleAction action = do
+  case action of
+    Initialized -> pure unit
+    ChangeProblem p -> do
+      let newState = initialState p
+      H.put newState
+    UndoAction ->
+      H.modify_ undo
+    ShowRuleModal rule ->
+      H.modify_ (\st -> st { showRuleModal = Just rule })
+    HandleRuleModal RuleDlg.Canceled ->
+      H.modify_ (\st -> st { showRuleModal = Nothing })
+    HandleRuleModal (RuleDlg.NewRule r) ->
+      H.modify_ (\st -> useRule r $ st { showRuleModal = Nothing })
+    HandleAssumeNew (NewBtn.NewExpr expr) ->
+      H.modify_ (addAssumption expr)
+    AddConclusion expr ->
+      H.modify_ (addConclusion expr)
+  liftEffect $ MathJax.typeSetPage
 
 showRuleButtons :: forall w. Scope -> Array Rule -> HTML w Action
 showRuleButtons _ rules | Array.null rules = HH.text ""
@@ -145,32 +154,34 @@ showRuleButtons scope rules =
     [ HH.text rule.ruleName ]
 
 showImplButtons :: forall w. State -> HTML w Action
-showImplButtons state | Env.stackDepth (currentStack state) <= 0 = HH.text ""
 showImplButtons state =
-  HH.div
-    [ HP.class_ (ClassName "box") ] 
-    [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "results" ]
-    , HH.div
-      [ HP.class_ (ClassName "buttons is-marginless") ]
-      (map showImplButton $ Scope.toArray $ currentScope state)
-    ]
+  case currentPremise state of
+    Nothing -> HH.text ""
+    Just prem ->
+      HH.div
+        [ HP.class_ (ClassName "box") ] 
+        [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "results" ]
+        , HH.div
+          [ HP.class_ (ClassName "buttons is-marginless") ]
+          (map (showImplButton prem) $ Scope.toArray $ currentScope state)
+        ]
   where
-  showImplButton expr = HH.button 
+  showImplButton prem expr = HH.button 
     [ HP.class_ (ClassName "button") 
     , HE.onClick (\_ -> Just $ AddConclusion expr)
     ]
-    [ HH.text $ "=> " <> show expr ]
+    [ MathJax.showMathJax (ImplExpr prem expr) ]
 
 showGoal :: forall w i. Problem -> HTML w i
 showGoal problem =
   HH.div
     [ HP.class_ (ClassName "box") ] 
     [ HH.h2 [ HP.class_ (ClassName "subtitle") ] [ HH.text "Goal" ]
-    , HH.h1 [ HP.class_ (ClassName "title") ] [ HH.text $ show problem.goal ]
+    , HH.h1 [ HP.class_ (ClassName "title") ] [ MathJax.showMathJax problem.goal ]
     , HH.h3 
       [ HP.class_ (ClassName "subtitle") ]
       [ HH.text $ "premisses: " 
-      , HH.strong_ [ HH.text $ intercalate ", " (map show problem.premisses) ]
+      , HH.strong_ (intercalate [HH.text ", "] (map (pure <<< MathJax.showMathJax) problem.premisses))
       ]
     , HH.a [ R.routeHref R.Home ] [ HH.text "back to problems.." ]
     ]
@@ -213,6 +224,11 @@ initialScope state =
 
 currentScope :: State -> Scope
 currentScope = Env.scopeOf <<< currentStack
+
+currentPremise :: State -> Maybe Expr
+currentPremise state = case currentStack state of
+    Env.Assumed expr _ _ -> Just expr
+    _ -> Nothing
 
 runWith :: forall a. State -> Environment a -> Tuple a AssumptionStack
 runWith state = Env.runWith (currentStack state)
@@ -266,36 +282,34 @@ showHistory state =
     , HH.div
       [ HP.class_ (ClassName "box history") ] 
       [ HH.h1 [ HP.class_ (ClassName "subtitle") ] [ HH.text "history" ]
-      , HH.withKeys_ HH.ol_ (let res = go 1 [] items in res.list)
+      , HH.ol_ (let res = go [] items in res.list)
       ]
     ]
   where
   items = List.toUnfoldable $ List.reverse $ map _.item state.history
-  go index acc hs =
+  go acc hs =
     case Array.uncons hs of
-      Nothing -> { add: addIndex (HH.text ""), rest: [], list: acc }
+      Nothing -> { add: HH.text "", rest: [], list: acc }
       Just { head, tail } -> 
         case head of
           (AddedPremisse p) ->
-            let new = addIndex $ HH.li_ [ HH.span_ [ HH.text "premisse: ", HH.strong_ [ HH.text $ show p.premisse ] ] ]
-            in go (index+1) (Array.snoc acc new) tail
+            let new = HH.li_ [ HH.span_ [ HH.text "premisse: ", MathJax.showMathJax p.premisse ] ]
+            in go (Array.snoc acc new) tail
           (UsedRule r) ->
             let 
-              new = addIndex $ HH.li_ 
+              new = HH.li_ 
                 [ HH.span_ 
-                  [ HH.strong_ [ HH.text $ show r.newFact ] 
+                  [ HH.strong_ [ MathJax.showMathJax r.newFact ] 
                   , HH.text " - "
                   , HH.em_ [ HH.text r.ruleInstance.description ] 
                   ]
                 ] 
-            in go (index+1) (Array.snoc acc new) tail
+            in go (Array.snoc acc new) tail
           (NewAssumption a) ->
-            let new = addIndex $ HH.li_ [ HH.span_ [ HH.text "assume: ", HH.strong_ [ HH.text $ show a.assumption ] ] ]
-                res = go (index+1) [] tail
-                addSub = if Array.null res.list then identity else flip Array.snoc (addIndex $ HH.li_ [HH.withKeys_ HH.ol_ res.list])
-            in go (index+1) (Array.snoc (addSub (Array.snoc acc new)) res.add) res.rest
+            let new = HH.li_ [ HH.span_ [ HH.text "assume: ", MathJax.showMathJax a.assumption ] ]
+                res = go [] tail
+                addSub = if Array.null res.list then identity else flip Array.snoc (HH.li_ [HH.ol_ res.list])
+            in go (Array.snoc (addSub (Array.snoc acc new)) res.add) res.rest
           (FoundImplication impl) ->
-            let new = addIndex $ HH.li_ [ HH.span_ [ HH.strong_ [ HH.text $ show impl.newFact ] ] ]
+            let new = HH.li_ [ HH.span_ [ MathJax.showMathJax impl.newFact ] ]
             in { add: new, rest: tail, list: acc }
-    where
-    addIndex = Tuple ("history_" <> show index)

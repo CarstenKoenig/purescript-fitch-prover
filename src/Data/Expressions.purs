@@ -33,9 +33,10 @@ derive instance genExpr :: Generic Expr _
 instance showExpr :: Show Expr where
   show = render stringConfig
 
-stringConfig :: RenderConfig String
+stringConfig :: RenderConfig String String
 stringConfig =
-  { and: \a b -> a <> " & " <> b
+  { wrap: identity
+  , and: \a b -> a <> " & " <> b
   , or: \a b -> a <> " | " <> b
   , impl: \a b -> a <> " => " <> b
   , not: \a -> "~" <> a
@@ -43,8 +44,9 @@ stringConfig =
   , renderString: identity
   }
 
-type RenderConfig a =
-  { and :: a -> a -> a
+type RenderConfig a out =
+  { wrap :: a -> out
+  , and :: a -> a -> a
   , or :: a -> a -> a
   , impl :: a -> a -> a
   , not :: a -> a
@@ -52,11 +54,11 @@ type RenderConfig a =
   , renderString :: String -> a
   }
 
-render :: forall a. RenderConfig a -> Expr -> a
+render :: forall a out. RenderConfig a out -> Expr -> out
 render config = renderPrec config 0
 
-renderPrec :: forall a. RenderConfig a -> Int -> Expr -> a
-renderPrec config = go
+renderPrec :: forall a out. RenderConfig a out -> Int -> Expr -> out
+renderPrec config p = config.wrap <<< go p
   where
   go _ (SymbolExpr s) = config.renderString s
   go prec (NegExpr expr) = 
