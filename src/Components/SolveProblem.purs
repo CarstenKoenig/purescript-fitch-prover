@@ -187,7 +187,9 @@ showGoal problem =
     ]
 
 showFound :: forall w i. State -> HTML w i
-showFound state | Scope.inScope (currentScope state) state.problem.goal =
+showFound state 
+  | Scope.inScope (currentScope state) state.problem.goal
+  && not (assumptionOnStack state) =
   HH.div
     [ HP.class_ (ClassName "notification is-success") ]
     [ HH.h1 [ HP.class_ (ClassName "title")] [ HH.text "YOU did it!!!"] ]
@@ -229,6 +231,11 @@ currentPremise :: State -> Maybe Expr
 currentPremise state = case currentStack state of
     Env.Assumed expr _ _ -> Just expr
     _ -> Nothing
+
+assumptionOnStack :: State -> Boolean
+assumptionOnStack state = case currentStack state of
+    Env.Assumed _ _ _ -> true
+    _ -> false
 
 runWith :: forall a. State -> Environment a -> Tuple a AssumptionStack
 runWith state = Env.runWith (currentStack state)
