@@ -18,7 +18,11 @@ data Part
   = Text String
   | Expr Expr
 
+derive instance eqPart :: Eq Part
+
 newtype Description = Description (Array Part)
+
+derive instance eqDescription :: Eq Description
 
 derive instance newtypeDescription :: Newtype Description _
 instance showDescription :: Show Description where

@@ -232,6 +232,16 @@ currentPremise state = case currentStack state of
     Env.Assumed expr _ _ -> Just expr
     _ -> Nothing
 
+latestAssumption :: State -> Maybe HistoryItem
+latestAssumption state = 
+  List.head 
+    $ List.filter (case _ of
+      (NewAssumption { assumption }) -> Just assumption == prem
+      _ -> false) 
+    $ map _.item
+    $ state.history
+  where prem = currentPremise state
+
 assumptionOnStack :: State -> Boolean
 assumptionOnStack state = case currentStack state of
     Env.Assumed _ _ _ -> true
@@ -256,6 +266,8 @@ data HistoryItem
   | AddedPremisse { premisse :: Expr }
   | NewAssumption { assumption :: Expr }
   | FoundImplication { newFact :: Expr }
+
+derive instance eqHistoryItem :: Eq HistoryItem
 
 useRule :: { ruleInstance :: RuleInstance, newFact :: Expr } -> State -> State
 useRule r state = addNewItem state $ do
@@ -313,7 +325,12 @@ showHistory state =
                 ] 
             in go (Array.snoc acc new) tail
           (NewAssumption a) ->
-            let new = HH.li_ [ HH.span_ [ HH.text "assume: ", MathJax.showMathJax a.assumption ] ]
+            let new = HH.li_ [ HH.span 
+              [ HP.classes (if latestAssumption state == Just head 
+                            then [ ClassName "latestAssumption" ] 
+                            else [] ) 
+              ] 
+              [ HH.text "assume: ", MathJax.showMathJax a.assumption ] ]
                 res = go [] tail
                 addSub = if Array.null res.list then identity else flip Array.snoc (HH.li_ [HH.ol_ res.list])
             in go (Array.snoc (addSub (Array.snoc acc new)) res.add) res.rest
