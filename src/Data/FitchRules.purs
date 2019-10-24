@@ -9,9 +9,9 @@ module Data.FitchRules
 import Prelude
 
 import Data.Array as Array
-import Data.Foldable (fold)
 import Data.Expressions (Expr(..))
 import Data.Rules (Rule, RuleRecipe(..))
+import Description as Desc
 
 rules :: Array Rule
 rules =
@@ -47,7 +47,7 @@ notIntroduction =
     a == a' && b' == NegExpr b || b == NegExpr b'
   validStep2 _ _ = false
   complete p1@(ImplExpr a _) p2 | validStep2 p1 p2 = Succeeded
-    { description: fold ["introduced NOT from ", show p1, " and ", show p2]
+    { description: Desc.desc [ Desc.text "introduced NOT from ", Desc.expr p1, Desc.text " and ", Desc.expr p2]
     , premisses: [p1, p2]
     , conclusions: [NegExpr a]
     }
@@ -66,7 +66,7 @@ notElimination =
         , stepNext: step
         }
       step p@(NegExpr (NegExpr a)) = Succeeded
-        { description: fold ["eliminated NOT in ", show p]
+        { description: Desc.desc [ Desc.text "eliminated NOT in ", Desc.expr p]
         , premisses: [p]
         , conclusions: [a]
         }
@@ -100,7 +100,7 @@ implicationElimination =
     a == a'
   validStep2 _ _ = false
   complete p1@(ImplExpr a b) a' | validStep2 p1 a' = Succeeded
-    { description: fold ["eliminated => in ", show p1, " with ", show a']
+    { description: Desc.desc [ Desc.text "eliminated => in ", Desc.expr p1, Desc.text " with ", Desc.expr a']
     , premisses: [p1, a']
     , conclusions: [b]
     }
@@ -126,7 +126,7 @@ andIntroduction =
     , stepNext: complete a
     }
   complete a b = Succeeded
-    { description: fold ["introduced AND from ", show a, " and ", show b]
+    { description: Desc.desc [ Desc.text "introduced AND from ", Desc.expr a, Desc.text " and ", Desc.expr b]
     , premisses: [a,b]
     , conclusions: Array.nub [ AndExpr a b, AndExpr b a ]
     }
@@ -144,7 +144,7 @@ andElimination =
         , stepNext: step
         }
       step p@(AndExpr a b) = Succeeded
-        { description: fold ["from ", show p]
+        { description: Desc.desc [ Desc.text "from ", Desc.expr p]
         , premisses: [p]
         , conclusions: Array.nub [a, b]
         }
@@ -172,7 +172,7 @@ orIntroduction =
     , stepNext: complete a
     }
   complete a b = Succeeded
-    { description: fold ["introduced OR from sure ", show a, " and ", show b]
+    { description: Desc.desc [ Desc.text "introduced OR from sure ", Desc.expr a, Desc.text " and ", Desc.expr b]
     , premisses: [a]
     , conclusions: Array.nub [ OrExpr a b, OrExpr b a ]
     }
@@ -210,7 +210,7 @@ orElimination =
       validImpl2 b c (ImplExpr b' c') | b == b' && c == c' = true
       validImpl2 _ _ _ = false
       completed or@(OrExpr a b) i1@(ImplExpr _ c) i2 | validImpl2 b c i2  = Succeeded
-        { description: fold ["eliminated OR in ", show or, " with ", show i1, " and ", show i2]
+        { description: Desc.desc [ Desc.text "eliminated OR in ", Desc.expr or, Desc.text " with ", Desc.expr i1, Desc.text " and ", Desc.expr i2]
         , premisses: [or, i1, i2]
         , conclusions: [c]
         }

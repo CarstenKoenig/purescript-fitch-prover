@@ -308,7 +308,7 @@ showHistory state =
                 [ HH.span_ 
                   [ HH.strong_ [ MathJax.showMathJax r.newFact ] 
                   , HH.text " - "
-                  , HH.em_ [ HH.text r.ruleInstance.description ] 
+                  , HH.em_ [ MathJax.showMathJaxDesc r.ruleInstance.description ] 
                   ]
                 ] 
             in go (Array.snoc acc new) tail

@@ -16,10 +16,11 @@ module Data.Rules
 import Prelude
 
 import Data.Array (any, filter, mapMaybe)
-import Data.Maybe (Maybe(..))
 import Data.Expressions (Expr)
+import Data.Maybe (Maybe(..))
 import Data.Scope (Scope)
 import Data.Scope as Scope
+import Description (Description)
 
 type Rule =
   { ruleName :: String
@@ -37,7 +38,7 @@ data RuleRecipe
   | Succeeded RuleInstance
 
 type RuleInstance =
-  { description :: String
+  { description :: Description
   , premisses :: Array Expr
   , conclusions :: Array Expr
   }
@@ -46,7 +47,7 @@ type RuleInstance =
 getLabelText :: RuleRecipe -> String
 getLabelText (Step s) = s.stepLabel
 getLabelText Failed = "sorry that did not work out"
-getLabelText (Succeeded ruleInst) = ruleInst.description
+getLabelText (Succeeded ruleInst) = show ruleInst.description
 
 getRuleInstance :: RuleRecipe -> Maybe RuleInstance
 getRuleInstance (Step _) = Nothing
