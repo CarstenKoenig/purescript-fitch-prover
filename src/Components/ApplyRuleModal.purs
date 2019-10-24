@@ -14,14 +14,15 @@ import Data.Expressions (Expr)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Rules (RuleInstance, RuleRecipe, Rule)
 import Data.Rules as Rules
-import Data.Symbol (SProxy(..))
 import Data.Scope (Scope)
-import Effect.Class (class MonadEffect)
+import Data.Symbol (SProxy(..))
+import Effect.Class (class MonadEffect, liftEffect)
 import Halogen (AttrName(..), ClassName(..))
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import MathJaxRenderer as MathJax
 
 type Slot = H.Slot (Const Unit) Message
 
@@ -114,31 +115,33 @@ component =
         ]
 
   handleAction :: Action -> H.HalogenM State Action ChildSlots Message m Unit
-  handleAction = case _ of
-    Close -> do
-      H.modify_ (_ { isActive = false })
-      H.raise Canceled
-    UpdateInput input -> do
-      H.modify_ (_ { scope = input.scope
-                   , rule = input.rule
-                   , currentStep = input.rule.ruleRecipe
-                   })
-    ApplyExprToCurrentStep expr -> do
-      step <- H.gets _.currentStep
-      case step of
-        Rules.Step s -> do
-          st <- H.modify (\st -> st { currentStep = Rules.autoStep st.scope (s.stepNext expr)})
-          autoComplete st
-        _ -> 
-          pure unit
-    Initialize -> do
-      st <- H.get
-      autoComplete st
-    SelectResult result -> do
-      H.modify_ (_ { isActive = false })
-      H.raise (NewRule result)
-    HandleNewExprButton (NewBtn.NewExpr expr) ->
-      handleAction (ApplyExprToCurrentStep expr)
+  handleAction action = do
+    case action of
+      Close -> do
+        H.modify_ (_ { isActive = false })
+        H.raise Canceled
+      UpdateInput input -> do
+        H.modify_ (_ { scope = input.scope
+                    , rule = input.rule
+                    , currentStep = input.rule.ruleRecipe
+                    })
+      ApplyExprToCurrentStep expr -> do
+        step <- H.gets _.currentStep
+        case step of
+          Rules.Step s -> do
+            st <- H.modify (\st -> st { currentStep = Rules.autoStep st.scope (s.stepNext expr)})
+            autoComplete st
+          _ -> 
+            pure unit
+      Initialize -> do
+        st <- H.get
+        autoComplete st
+      SelectResult result -> do
+        H.modify_ (_ { isActive = false })
+        H.raise (NewRule result)
+      HandleNewExprButton (NewBtn.NewExpr expr) ->
+        handleAction (ApplyExprToCurrentStep expr)
+    liftEffect MathJax.typeSetPage
     where
       autoComplete st =
         case Rules.getRuleInstance st.currentStep of
@@ -163,7 +166,7 @@ component =
     [ HP.class_ (ClassName "button") 
     , HE.onClick (\_ -> Just (ApplyExprToCurrentStep expr))
     ] 
-    [ HH.text $ show expr ]
+    [ MathJax.showMathJax expr ]
 
   showConclusions ruleInst =
     if Array.null ruleInst.conclusions
@@ -179,4 +182,4 @@ component =
     [ HP.class_ (ClassName "button is-success") 
     , HE.onClick (\_ -> Just $ SelectResult { ruleInstance: ruleInst, newFact: expr })
     ] 
-    [ HH.text $ show expr ]
+    [ MathJax.showMathJax expr ]
