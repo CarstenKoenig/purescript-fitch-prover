@@ -58,6 +58,10 @@ problems = Problems $
   , stanford1
   , stanford2
   , stanford3
+  , stanford4
+  , stanford5
+  , stanford6
+  , stanford7
   ]
 
 
@@ -102,6 +106,34 @@ stanford3 =
   { name: "Exercise 4.3"
   , goal: parse "p => r"
   , premisses: [ parse "p => q", parse "q <=> r" ]
+  }
+
+stanford4 :: Problem
+stanford4 =
+  { name: "Exercise 4.4"
+  , goal: parse "m => q"
+  , premisses: map parse ["p => q", "m => p | q"]
+  }
+
+stanford5 :: Problem
+stanford5 =
+  { name: "Exercise 4.5"
+  , goal: parse "(p => q) => (p => r)"
+  , premisses: map parse ["p => (q => r)"]
+  }
+
+stanford6 :: Problem
+stanford6 =
+  { name: "Exercise 4.6"
+  , goal: parse "p => (q => p)"
+  , premisses: []
+  }
+
+stanford7 :: Problem
+stanford7 =
+  { name: "Exercise 4.7"
+  , goal: parse "(p => (q => r)) => ((p => q) => (p => r))"
+  , premisses: []
   }
 
 parse :: String -> Expr
