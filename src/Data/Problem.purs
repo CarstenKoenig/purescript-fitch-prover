@@ -62,6 +62,13 @@ problems = Problems $
   , stanford5
   , stanford6
   , stanford7
+  , stanford8
+  , stanford9
+  , stanford10
+  , stanford11
+  , stanford12
+  , stanford13
+  , stanford14
   ]
 
 
@@ -133,6 +140,55 @@ stanford7 :: Problem
 stanford7 =
   { name: "Exercise 4.7"
   , goal: parse "(p => (q => r)) => ((p => q) => (p => r))"
+  , premisses: []
+  }
+
+stanford8 :: Problem
+stanford8 =
+  { name: "Exercise 4.8"
+  , goal: parse "(~p => q) => ((~p => ~q) => p)"
+  , premisses: []
+  }
+
+stanford9 :: Problem
+stanford9 =
+  { name: "Exercise 4.9"
+  , goal: parse "~(~p)"
+  , premisses: [ parse "p" ]
+  }
+
+stanford10 :: Problem
+stanford10 =
+  { name: "Exercise 4.10"
+  , goal: parse "~q => ~p"
+  , premisses: [ parse "p => q" ]
+  }
+
+stanford11 :: Problem
+stanford11 =
+  { name: "Exercise 4.11"
+  , goal: parse "~p | q"
+  , premisses: [ parse "p => q" ]
+  }
+
+stanford12 :: Problem
+stanford12 =
+  { name: "Exercise 4.12"
+  , goal: parse "((p => q) => p) => p"
+  , premisses: []
+  }
+
+stanford13 :: Problem
+stanford13 =
+  { name: "Exercise 4.13"
+  , goal: parse "(~p | ~q)"
+  , premisses: [parse "~(p | q)"]
+  }
+
+stanford14 :: Problem
+stanford14 =
+  { name: "Exercise 4.14"
+  , goal: parse "(p | ~p)"
   , premisses: []
   }
 
