@@ -25,6 +25,7 @@ data Expr
   | ImplExpr Expr Expr 
   | AndExpr Expr Expr
   | OrExpr Expr Expr
+  | BiCondExpr Expr Expr
 
 derive instance eqExpr :: Eq Expr
 derive instance ordExpr :: Ord Expr
@@ -39,6 +40,7 @@ stringConfig =
   , and: \a b -> a <> " & " <> b
   , or: \a b -> a <> " | " <> b
   , impl: \a b -> a <> " => " <> b
+  , biCond: \a b -> a <> " <=> " <> b
   , not: \a -> "~" <> a
   , inBraces: \a -> "(" <> a <> ")"
   , renderString: identity
@@ -49,6 +51,7 @@ type RenderConfig a out =
   , and :: a -> a -> a
   , or :: a -> a -> a
   , impl :: a -> a -> a
+  , biCond :: a -> a -> a
   , not :: a -> a
   , inBraces :: a -> a
   , renderString :: String -> a
@@ -73,6 +76,9 @@ renderPrec config p = config.wrap <<< go p
   go prec (ImplExpr a b) = 
     wrap (prec > implPrec) $ go (implPrec+1) a `config.impl` go (implPrec+1) b
     where implPrec = 3
+  go prec (BiCondExpr a b) = 
+    wrap (prec > biCondPrec) $ go (biCondPrec+1) a `config.biCond` go (biCondPrec+1) b
+    where biCondPrec = 1
   wrap true = config.inBraces 
   wrap false = identity
 
@@ -87,6 +93,7 @@ exprParser = skipSpaces *> fix go
       , [ Infix (string "&" <* skipSpaces $> AndExpr) AssocRight ]
       , [ Infix (skipSpaces *> string "|" <* skipSpaces $> OrExpr) AssocRight ]
       , [ Infix (string "=>" <* skipSpaces $> ImplExpr) AssocRight ]
+      , [ Infix (string "<=>" <* skipSpaces $> BiCondExpr) AssocRight ]
       ] 
       (between (string "(" <* skipSpaces) (string ")" <* skipSpaces) cont
       <|> SymbolExpr <<< fromCharArray <$> (some letter <* skipSpaces) 

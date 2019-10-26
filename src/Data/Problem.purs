@@ -55,6 +55,9 @@ problems = Problems $
   [ problem1
   , problem2
   , problem3
+  , stanford1
+  , stanford2
+  , stanford3
   ]
 
 
@@ -78,6 +81,27 @@ problem3 =
   { name: "contraposition"
   , goal: parse "~b => ~a" 
   , premisses: [parse "a => b"]
+  }
+
+stanford1 :: Problem
+stanford1 =
+  { name: "Exercise 4.1"
+  , goal: parse "r"
+  , premisses: [ parse "p", parse "q", parse "p & q => r" ]
+  }
+
+stanford2 :: Problem
+stanford2 =
+  { name: "Exercise 4.2"
+  , goal: parse "q | r"
+  , premisses: [ parse "p & q" ]
+  }
+
+stanford3 :: Problem
+stanford3 =
+  { name: "Exercise 4.3"
+  , goal: parse "p => r"
+  , premisses: [ parse "p => q", parse "q <=> r" ]
   }
 
 parse :: String -> Expr

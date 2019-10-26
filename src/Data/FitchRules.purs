@@ -1,6 +1,7 @@
 module Data.FitchRules
   ( notIntroduction, notElimination
   , implicationElimination
+  , biCondIntroduction, biCondElimination
   , andIntroduction, andElimination
   , orIntroduction, orElimination
   , rules
@@ -17,6 +18,7 @@ rules :: Array Rule
 rules =
   [ notIntroduction, notElimination
   , implicationElimination
+  , biCondIntroduction, biCondElimination
   , andIntroduction, andElimination
   , orIntroduction, orElimination
   ]
@@ -105,6 +107,59 @@ implicationElimination =
     , conclusions: [b]
     }
   complete _ _ = Failed
+
+biCondIntroduction :: Rule
+biCondIntroduction =
+  { ruleName: "<=> introduction"
+  , ruleRecipe: recipe
+  }
+  where
+  recipe = step1
+  step1 = Step
+    { stepLabel: "Choose a known implication."
+    , stepIsValidExpr: validImpl1
+    , stepAllowNewExprs: false
+    , stepNext: step2
+    }
+  step2 impl1@(ImplExpr a b) = Step
+    { stepLabel: "Choose a second implication."
+    , stepIsValidExpr: validImpl2 impl1
+    , stepAllowNewExprs: false
+    , stepNext: complete impl1
+    }
+  step2 _ = Failed
+  complete impl1@(ImplExpr a b) impl2@(ImplExpr _ _) | validImpl2 impl1 impl2 = Succeeded
+    { description: Desc.desc [ Desc.text "introduced <=> from ", Desc.expr impl1, Desc.text " and ", Desc.expr impl2]
+    , premisses: [impl1, impl2]
+    , conclusions: Array.nub [ BiCondExpr a b, BiCondExpr b a ]
+    }
+  complete _ _ = Failed
+  validImpl1 (ImplExpr _ _) = true
+  validImpl1 _ = false
+
+  validImpl2 (ImplExpr a b) (ImplExpr b' a') = a == a' && b == b'
+  validImpl2 _ _ = false
+
+biCondElimination :: Rule 
+biCondElimination = 
+    { ruleName: "<=> elimination"
+    , ruleRecipe: recipe
+    }
+    where 
+      recipe = Step
+        { stepLabel: "Choose a known biconditional."
+        , stepIsValidExpr: validBiCond
+        , stepAllowNewExprs: false
+        , stepNext: step
+        }
+      step p@(BiCondExpr a b) = Succeeded
+        { description: Desc.desc [ Desc.text "from ", Desc.expr p]
+        , premisses: [p]
+        , conclusions: Array.nub [ImplExpr a b, ImplExpr b a]
+        }
+      step _ = Failed
+      validBiCond (BiCondExpr _ _) = true
+      validBiCond _ = false
 
 andIntroduction :: Rule
 andIntroduction =

@@ -22,6 +22,7 @@ mathJaxConfig =
   , and: \a b -> a <> " \\land " <> b
   , or: \a b -> a <> " \\lor " <> b
   , impl: \a b -> a <> " \\implies " <> b
+  , biCond: \a b -> a <> " \\Leftrightarrow " <> b
   , not: \a -> "\\neg " <> a
   , inBraces: \a -> " \\left( " <> a <> " \\right) "
   , renderString: identity
