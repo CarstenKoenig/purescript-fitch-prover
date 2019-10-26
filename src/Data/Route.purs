@@ -9,6 +9,8 @@ import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Lens.Iso.Newtype (_Newtype)
+import Data.Problem (ProblemNumber)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen.HTML (IProp)
 import Halogen.HTML.Properties as HP
@@ -18,7 +20,7 @@ import Routing.Hash (setHash)
 
 data Route
   = Home
-  | Problem Int
+  | Problem ProblemNumber
 
 derive instance genericRoute :: Generic Route _
 derive instance eqRoute :: Eq Route
@@ -30,8 +32,11 @@ instance showRoute :: Show Route where
 codec :: RouteDuplex' Route
 codec = root $ sum
   { "Home": noArgs
-  , "Problem": int segment
+  , "Problem": problemNr
   }
+
+problemNr :: RouteDuplex' ProblemNumber
+problemNr = _Newtype (int segment)
 
 navigate :: forall m. MonadEffect m => Route -> m Unit
 navigate = liftEffect <<< setHash <<< print codec

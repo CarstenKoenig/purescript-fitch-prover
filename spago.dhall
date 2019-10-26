@@ -10,6 +10,7 @@ You can edit this file as you like.
     , "generics-rep"
     , "halogen"
     , "parsing"
+    , "profunctor-lenses"
     , "psci-support"
     , "routing"
     , "routing-duplex"

@@ -68,8 +68,8 @@ component = H.mkComponent
     Just r -> case r of
       Route.Home -> 
         HH.slot (SProxy :: _ "home") unit CP.component {} absurd
-      Route.Problem p -> 
-        case P.getProblem p of
+      Route.Problem nr -> 
+        case P.getProblem P.problems nr of
           Nothing ->
             HH.div_ [ HH.text "Oh no! I don't know this problem." ]
           Just problem ->

@@ -2,12 +2,13 @@ module Components.ChooseProblem (component) where
 
 import Prelude
 
-import Data.Array as Array
+import Data.Foldable (null)
 import Data.Maybe (Maybe(..))
-import Data.Problem (Problem)
+import Data.Problem (Problem, ProblemNumber, Problems)
 import Data.Problem as P
 import Data.Route (navigate)
 import Data.Route as R
+import Data.Tuple (Tuple(..))
 import Effect.Class (class MonadEffect)
 import Halogen (ClassName(..))
 import Halogen as H
@@ -17,10 +18,10 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 type State =
-  { problems :: Array Problem }
+  { problems :: Problems }
 
 data Action
-  = GotoProblem Problem
+  = GotoProblem ProblemNumber
 
 type ChildSlots = ()
 
@@ -39,16 +40,15 @@ component =
 
   render :: State -> H.ComponentHTML Action ChildSlots m
   render state = HH.div_
-    [ showProblemButtons state.problems
-    ]
+    [ showProblemButtons $ P.toUnfoldable state.problems ]
 
   handleAction :: Action -> H.HalogenM State Action ChildSlots o m Unit
   handleAction = case _ of
-    GotoProblem p ->
-      navigate (R.Problem p.number)
+    GotoProblem nr ->
+      navigate (R.Problem nr)
 
-showProblemButtons :: forall w. Array Problem -> HTML w Action
-showProblemButtons problems | Array.null problems = HH.text ""
+showProblemButtons :: forall w . Array (Tuple ProblemNumber Problem) -> HTML w Action
+showProblemButtons problems | null problems = HH.text ""
 showProblemButtons problems =
   HH.div
     [ HP.class_ (ClassName "box") ] 
@@ -58,8 +58,8 @@ showProblemButtons problems =
       (map showProblemButton problems)
     ]
   where
-  showProblemButton problem = HH.button 
+  showProblemButton p@(Tuple nr problem) = HH.button 
     [ HP.class_ (ClassName "button") 
-    , HE.onClick (\_ -> Just (GotoProblem problem))
+    , HE.onClick (\_ -> Just (GotoProblem nr))
     ] 
     [ HH.text problem.name ]
