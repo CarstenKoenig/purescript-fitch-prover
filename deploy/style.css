@@ -1,0 +1,30 @@
+.history ol {
+  list-style-type: none;
+}
+
+.history ol li {
+  border-left-width: 2px;
+  border-left-style: double;
+  border-left-color: gray;
+  margin-left: 2px;
+  padding-left: 10px;
+}
+
+.button.undo {
+  margin-top: 0.3rem;
+  margin-right: 0.3rem;
+  padding: 0.7rem;
+}
+
+.description {
+  color: grey;
+}
+
+.description .math {
+  color: steelblue;
+}
+
+.latestAssumption {
+  text-shadow: 0px 1px darkslategray;
+  color: turquoise
+}

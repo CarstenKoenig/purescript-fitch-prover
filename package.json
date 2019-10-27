@@ -6,8 +6,8 @@
   "scripts": {
     "clean": "rimraf output",
     "build": "spago build",
-    "dev": "npm run build && parcel build ./static/index.html",
-    "start": "npm run build && parcel ./static/index.html"
+    "start": "npm run build && parcel ./static/index.html",
+    "deploy": "spago build && spago bundle-module -t deploy/app.js && parcel build deploy/index.html --no-source-maps -d deploy/dist"
   },
   "keywords": [],
   "author": "",
