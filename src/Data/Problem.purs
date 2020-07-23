@@ -181,7 +181,7 @@ stanford12 =
 stanford13 :: Problem
 stanford13 =
   { name: "Exercise 4.13"
-  , goal: parse "(~p | ~q)"
+  , goal: parse "(~p & ~q)"
   , premisses: [parse "~(p | q)"]
   }
 
