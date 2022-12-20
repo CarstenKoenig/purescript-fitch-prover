@@ -3,14 +3,14 @@ module Data.Route
   , codec
   , navigate
   , routeHref
- ) where
+  ) where
 
 import Prelude hiding ((/))
 
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Show (genericShow)
 import Data.Lens.Iso.Newtype (_Newtype)
 import Data.Problem (ProblemNumber)
+import Data.Show.Generic (genericShow)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen.HTML (IProp)
 import Halogen.HTML.Properties as HP
@@ -41,5 +41,5 @@ problemNr = _Newtype (int segment)
 navigate :: forall m. MonadEffect m => Route -> m Unit
 navigate = liftEffect <<< setHash <<< print codec
 
-routeHref :: forall a props. Route -> IProp ( href :: String | props ) a
+routeHref :: forall a props. Route -> IProp (href :: String | props) a
 routeHref = print codec >>> HP.href

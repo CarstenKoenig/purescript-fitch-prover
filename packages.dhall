@@ -116,13 +116,54 @@ let additions =
   }
 -------------------------------
 -}
-
-
 let upstream =
-      https://github.com/purescript/package-sets/releases/download/psc-0.13.3-20191005/packages.dhall sha256:ba287d858ada09c4164792ad4e643013b742c208cbedf5de2e35ee27b64b6817
+      https://github.com/purescript/package-sets/releases/download/psc-0.15.4-20221214/packages.dhall
+        sha256:e462fb4d932e4bbc522cb563a71d312d6514f97050125d1a3f95cc3a2df3bffb
 
 let overrides = {=}
 
-let additions = {=}
+let additions =
+  { svg-parser-halogen =
+       { dependencies =
+         [ "arrays"
+         , "bifunctors"
+         , "either"
+         , "halogen"
+         , "prelude"
+         , "svg-parser"
+         ]
+       , repo =
+           "https://github.com/rnons/purescript-svg-parser-halogen"
+       , version =
+           "master"
+       }
+  , string-parsers =
+       { dependencies =
+            [ "arrays"
+            , "assert"
+            , "bifunctors"
+            , "console"
+            , "control"
+            , "effect"
+            , "either"
+            , "enums"
+            , "foldable-traversable"
+            , "lists"
+            , "maybe"
+            , "minibench"
+            , "nonempty"
+            , "partial"
+            , "prelude"
+            , "strings"
+            , "tailrec"
+            , "transformers"
+            , "unfoldable"
+            ]       
+       , repo =
+           "https://github.com/purescript-contrib/purescript-string-parsers"
+       , version =
+           "main"
+       }
+  }
 
 in  upstream // overrides // additions

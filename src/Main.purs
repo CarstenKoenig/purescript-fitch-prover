@@ -22,4 +22,4 @@ main = HA.runHalogenAff do
 
   void $ liftEffect $ matchesWith (RD.parse Route.codec) \old new -> do
     when (old /= Just new) do
-      launchAff_ $ halogenIO.query $ H.tell $ R.Navigate new
+      launchAff_ $ void $ halogenIO.query $ H.mkTell $ R.Navigate new
